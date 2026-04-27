@@ -1,0 +1,57 @@
+dvc_workflow:
+  - step: "dvc init"
+    actions:
+      - "creates .dvc/ (config, cache, tmp)"
+      - "updates .gitignore"
+
+  - step: "dvc add"
+    actions:
+      - "calculates hash"
+      - "stores real data in cache"
+      - "creates .dvc pointer file"
+
+  - component: "cache"
+    description:
+      - "stores ALL versions of data (by hash)"
+
+  - component: "config"
+    description:
+      - "stores remote storage info"
+
+  - component: "tmp"
+    description:
+      - "internal temporary files (not important)"
+
+  - scenario: "if data changes"
+    result:
+      - "new hash created"
+      - "new version stored in cache"
+      - "old versions remain"
+
+hashing_info:
+
+  algorithm:
+    name: md5
+    purpose: >
+      Used to generate a fingerprint (hash) of files or folders
+      so DVC can detect changes in content.
+
+  why_md5:
+    - fast
+    - widely_used
+    - good_enough_for_change_detection
+
+  explanation:
+    simple_definition: >
+      MD5 converts file content into a unique fixed-length string
+      called a hash or fingerprint.
+
+    role_in_dvc: >
+      In DVC, MD5 is used to track whether a file or folder has changed.
+      If the content changes, the MD5 hash changes completely.
+
+  key_idea: >
+    Same content = same hash
+    Different content = different hash
+
+

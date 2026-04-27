@@ -1,0 +1,136 @@
+dvc_google_drive_setup:
+  description: >
+    Step-by-step guide to configure DVC with Google Drive as remote storage,
+    including fixing common authentication errors.
+
+  prerequisites:
+    - Python installed
+    - Git installed
+    - A Google account
+
+  steps:
+
+    1_install_dvc:
+      title: Install DVC with Google Drive support
+      command: pip install "dvc[gdrive]"
+
+    2_initialize_dvc:
+      title: Initialize DVC in your project
+      commands:
+        - git init          # skip if already a git repo
+        - dvc init
+        - git commit -m "Initialize DVC"
+
+    3_create_gdrive_folder:
+      title: Create a Google Drive folder
+      steps:
+        - Go to https://drive.google.com
+        - Create a new folder e.g. "dvc-storage"
+        - Open the folder and copy the folder ID from the URL
+      note: "URL format: https://drive.google.com/drive/folders/YOUR_FOLDER_ID"
+
+    4_add_dvc_remote:
+      title: Add Google Drive as DVC remote
+      commands:
+        - dvc remote add --default mydrive gdrive://YOUR_FOLDER_ID
+        - dvc remote modify mydrive gdrive_acknowledge_abuse true  
+        #It makes DVC automatically click "Download anyway" on your behalf when Drive says:
+        #"This file is too large to scan for viruses"
+        - git add .dvc/config
+        - git commit -m "Configure Google Drive DVC remote"
+
+    5_google_cloud_project:
+      title: Create a Google Cloud Project (to fix auth errors)
+      reason: >
+        Using DVC's default credentials causes "App blocked" or "access_denied"
+        errors. You must create your own OAuth credentials.
+      steps:
+        - Go to https://console.cloud.google.com
+        - Click "New Project"
+        - Name it e.g. "dvc-remote" and click Create
+
+    6_enable_drive_api:
+      title: Enable Google Drive API
+      steps:
+        - Go to APIs & Services > Library
+        - Search for "Google Drive API"
+        - Click Enable
+
+    7_oauth_consent_screen:
+      title: Configure OAuth Consent Screen
+      steps:
+        - Go to APIs & Services > OAuth consent screen
+          (or Auth Platform > Audience)
+        - Click "Edit App"
+        - Set User Type to "External" and click Create
+        - Fill in:
+            app_name: "DVC Storage"
+            user_support_email: your-email@gmail.com
+            developer_contact_email: your-email@gmail.com
+        - Click Save and Continue through Scopes page (no changes needed)
+        - On "Test users" page:
+            - Click "+ Add Users"
+            - Add your Google account email
+            - Click Add then Save and Continue
+
+    8_create_oauth_credentials:
+      title: Create OAuth Client ID
+      steps:
+        - Go to APIs & Services > Credentials
+        - Click "+ Create Credentials" > "OAuth client ID"
+        - Choose "Desktop app"
+        - Click Create
+        - Copy the Client ID and Client Secret
+
+    9_configure_dvc_credentials:
+      title: Add OAuth credentials to DVC
+      commands:
+        - dvc remote modify --local mydrive gdrive_client_id 'YOUR_CLIENT_ID'
+        - dvc remote modify --local mydrive gdrive_client_secret 'YOUR_CLIENT_SECRET'
+      warning: >
+        Use the FULL parameter names exactly as shown.
+        Common mistake: using "gdrive_client" instead of "gdrive_client_secret"
+        will cause: "extra keys not allowed" error.
+
+    10_track_and_push_data:
+      title: Track data and push to Google Drive
+      commands:
+        - dvc add data/             # track your data folder or file
+        - git add data.dvc .gitignore
+        - git commit -m "Track data with DVC"
+        - dvc push                  # uploads data to Google Drive
+
+      first_push_note: >
+        On first push, DVC opens your browser for Google authentication.
+        Sign in with the same email you added as a Test User.
+        Grant permissions and the credentials will be cached locally.
+
+    11_pull_data_on_another_machine:
+      title: Pull data on a different machine
+      commands:
+        - git clone <your-repo-url>
+        - dvc pull
+
+  common_errors:
+    app_blocked:
+      error: "This app is blocked"
+      cause: Using DVC's default shared OAuth credentials
+      fix: Create your own Google Cloud Project and OAuth credentials (steps 5-9)
+
+    access_denied_403:
+      error: "Error 403: access_denied - app has not completed verification"
+      cause: Your email is not added as a Test User
+      fix: >
+        Go to Google Cloud Console > Auth Platform > Audience > Test Users
+        and add your Gmail address
+
+    extra_keys_not_allowed:
+      error: "extra keys not allowed @ data['remote']['mydrive']['gdrive_client']"
+      cause: Typo in the config key name
+      fix: Use the correct key name "gdrive_client_secret" not "gdrive_client"
+
+  tips:
+    - Never commit your OAuth credentials to Git
+    - Add .dvc/config.local to .gitignore if it contains secrets
+    - For CI/CD pipelines, use a Service Account instead of OAuth
+    - The Test User limit is 100 users while app is in Testing mode

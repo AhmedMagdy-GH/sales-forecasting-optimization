@@ -1,0 +1,38 @@
+dvc_workflow:
+
+  init_project:
+    - dvc init
+    - git add .
+    - git commit -m "init dvc"
+
+  track_data:
+    raw_data:
+      - dvc add Data/Raw
+
+    preprocessed_data:
+      - dvc add Data/Preprocessed
+
+  git_sync:
+    - git add Data/*.dvc .gitignore
+    - git commit -m "track datasets with dvc"
+
+  setup_remote:
+    install_gdrive_support:
+      - pip install "dvc[gdrive]"
+
+    add_remote:
+      - dvc remote add -d data_storage gdrive://<folder-id>
+
+  upload_data:
+    - dvc push
+
+  daily_update_workflow:
+    steps:
+      - dvc add Data/Preprocessed
+      - git add Data/Preprocessed.dvc
+      - git commit -m "update processed data"
+      - dvc push
+
+  restore_project:
+    - git clone <repo>
+    - dvc pull
