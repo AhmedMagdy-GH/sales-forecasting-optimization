@@ -1,0 +1,2 @@
+#Core Date Science Libraries
+pandas>=2.3.3

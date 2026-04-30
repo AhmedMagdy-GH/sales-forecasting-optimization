@@ -1,0 +1,56 @@
+@startuml sequence-forecast
+title Sequence Diagram — Generate a Sales Forecast (Runtime)
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor      #2C6FBB
+  LifeLineBorderColor #2C6FBB
+  ParticipantBorderColor #2C6FBB
+  ParticipantBackgroundColor #FAFCFF
+}
+
+actor "Business User" as U
+participant "Streamlit UI"          as UI
+participant "Auth Module"           as AUTH
+participant "ForecastService"       as FS
+participant "FeatureEngineer"       as FE
+database    "Feature Store"         as FEAT
+participant "ModelLoader"           as ML
+participant "MLflow Registry"       as REG
+participant "XGBoost Model"         as XGB
+database    "Predictions Log"       as PRED
+participant "Plotly Renderer"       as PLOT
+
+U -> UI   : open app
+UI -> AUTH: validate session
+AUTH --> UI: ok (role=business_user)
+
+U  -> UI  : select store, SKU, horizon=30, promo=ON
+UI -> FS  : predict(store_id, sku_id, horizon, scenario)
+
+FS -> FE  : build_features(store_id, sku_id, horizon, scenario)
+FE -> FEAT: fetch latest lags & rolling stats
+FEAT --> FE: feature rows
+FE --> FS : X (DataFrame)
+
+FS -> ML  : load_production_model("sales_xgb")
+ML -> REG : get_latest_versions(stage="Production")
+REG --> ML: model_uri
+ML --> FS : XGBoost booster
+
+FS -> XGB : predict(X)
+XGB --> FS: yhat[]
+
+FS -> PRED: insert predictions (run_id, ts, yhat)
+FS --> UI : forecast DataFrame
+
+UI -> PLOT: plot_forecast(df)
+PLOT --> UI: figure
+UI --> U  : interactive chart + KPI cards
+
+U -> UI   : click "Download CSV"
+UI -> FS  : export(df, format="csv")
+FS --> UI : bytes
+UI --> U  : file download
+
+@enduml
+

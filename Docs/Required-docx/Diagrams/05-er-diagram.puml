@@ -1,0 +1,147 @@
+@startuml er-diagram
+title Sales Forecasting & Optimization — Entity Relationship Diagram (Crow's Foot)
+hide circle
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+  ArrowColor     #2C6FBB
+}
+
+entity "STORE" as STORE {
+  * **store_id** : INT <<PK>>
+  --
+  store_name   : VARCHAR(100)
+  city         : VARCHAR(80)
+  region       : VARCHAR(80)
+  country      : VARCHAR(60)
+  store_type   : VARCHAR(30)
+  open_date    : DATE
+}
+
+entity "PRODUCT" as PRODUCT {
+  * **sku_id**    : INT <<PK>>
+  --
+  sku_code     : VARCHAR(40) <<UQ>>
+  product_name : VARCHAR(150)
+  category_id  : INT <<FK>>
+  unit_price   : DECIMAL(10,2)
+  unit_cost    : DECIMAL(10,2)
+}
+
+entity "CATEGORY" as CATEGORY {
+  * **category_id** : INT <<PK>>
+  --
+  name          : VARCHAR(80)
+  parent_id     : INT <<FK>>
+}
+
+entity "DATE_DIM" as DATE_DIM {
+  * **date_id** : DATE <<PK>>
+  --
+  day          : INT
+  week         : INT
+  month        : INT
+  quarter      : INT
+  year         : INT
+  day_of_week  : INT
+  is_weekend   : BOOLEAN
+  is_holiday   : BOOLEAN
+  holiday_name : VARCHAR(80)
+}
+
+entity "PROMOTION" as PROMOTION {
+  * **promo_id**   : INT <<PK>>
+  --
+  name          : VARCHAR(100)
+  promo_type    : VARCHAR(30)
+  discount_pct  : DECIMAL(5,2)
+  start_date    : DATE
+  end_date      : DATE
+}
+
+entity "SALES_FACT" as SALES {
+  * **sale_id**     : BIGINT <<PK>>
+  --
+  * date_id     : DATE  <<FK>>
+  * store_id    : INT   <<FK>>
+  * sku_id      : INT   <<FK>>
+    promo_id    : INT   <<FK, NULL>>
+    units_sold  : INT
+    revenue     : DECIMAL(12,2)
+    on_promo    : BOOLEAN
+}
+
+entity "WEATHER" as WEATHER {
+  * **weather_id** : BIGINT <<PK>>
+  --
+  * date_id     : DATE <<FK>>
+  * store_id    : INT  <<FK>>
+    temp_c       : DECIMAL(4,1)
+    precipitation: DECIMAL(5,2)
+    condition    : VARCHAR(40)
+}
+
+entity "FORECAST" as FORECAST {
+  * **forecast_id** : BIGINT <<PK>>
+  --
+  * run_id       : VARCHAR(64) <<FK>>
+  * store_id     : INT  <<FK>>
+  * sku_id       : INT  <<FK>>
+  * forecast_date: DATE
+    horizon_days : INT
+    yhat         : DECIMAL(12,2)
+    yhat_lower   : DECIMAL(12,2)
+    yhat_upper   : DECIMAL(12,2)
+    created_at   : TIMESTAMP
+}
+
+entity "MODEL_RUN" as RUN {
+  * **run_id**   : VARCHAR(64) <<PK>>
+  --
+  model_name   : VARCHAR(80)
+  version      : VARCHAR(20)
+  algorithm    : VARCHAR(40)   ' XGBoost
+  params_json  : TEXT
+  rmse         : DECIMAL(10,4)
+  mae          : DECIMAL(10,4)
+  mape         : DECIMAL(6,3)
+  trained_at   : TIMESTAMP
+  status       : VARCHAR(20)   ' staging / production / archived
+}
+
+entity "USER" as USER {
+  * **user_id** : INT <<PK>>
+  --
+  username    : VARCHAR(50) <<UQ>>
+  email       : VARCHAR(120) <<UQ>>
+  password_hash: VARCHAR(255)
+  role        : VARCHAR(30)
+  created_at  : TIMESTAMP
+}
+
+entity "AUDIT_LOG" as AUDIT {
+  * **log_id** : BIGINT <<PK>>
+  --
+  * user_id : INT <<FK>>
+  action   : VARCHAR(80)
+  payload  : TEXT
+  ts       : TIMESTAMP
+}
+
+' Relationships (Crow's foot)
+CATEGORY ||--o{ CATEGORY  : "parent_of"
+CATEGORY ||--o{ PRODUCT   : "classifies"
+STORE    ||--o{ SALES     : "records"
+PRODUCT  ||--o{ SALES     : "sold_as"
+DATE_DIM ||--o{ SALES     : "on"
+PROMOTION |o--o{ SALES    : "applied_to"
+STORE    ||--o{ WEATHER   : "observed_at"
+DATE_DIM ||--o{ WEATHER   : "for_date"
+STORE    ||--o{ FORECAST  : "forecast_for"
+PRODUCT  ||--o{ FORECAST  : "forecast_for"
+RUN      ||--o{ FORECAST  : "produced"
+USER     ||--o{ AUDIT     : "performs"
+
+@enduml
+

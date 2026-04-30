@@ -1,0 +1,85 @@
+@startuml deployment-diagram
+title Deployment Diagram — Sales Forecasting Production Topology
+skinparam shadowing false
+skinparam node {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+}
+skinparam database {
+  BackgroundColor #FCE8E8
+}
+skinparam cloud {
+  BackgroundColor #E8F1FB
+}
+
+actor "End User\n(Browser)" as USER
+
+cloud "Internet" as NET
+
+node "Cloud Provider (AWS / GCP)" {
+
+  node "Edge / Load Balancer\n(ALB / Cloud Load Balancer)\n[HTTPS, TLS 1.3]" as LB
+
+  node "App Cluster\n(ECS Fargate / Cloud Run)" {
+    node "Streamlit Container 1" as APP1 {
+      artifact "streamlit_app.py"
+      artifact "src/* (services, models)"
+    }
+    node "Streamlit Container 2 (autoscale)" as APP2 {
+      artifact "streamlit_app.py"
+    }
+  }
+
+  node "MLflow Server\n(EC2 / Cloud Run)" as MLFNODE {
+    artifact "mlflow ui :5000"
+  }
+
+  node "Training Worker\n(spot VM / Cloud Run Job)" as TRAIN {
+    artifact "train.py"
+    artifact "Optuna study DB"
+  }
+
+  node "Scheduler" as SCHED {
+    artifact "GitHub Actions / Cloud Scheduler\n(daily retrain + drift check)"
+  }
+
+  database "PostgreSQL RDS\n(predictions, audit, users)" as PG
+  database "S3 / GCS Bucket\n(MLflow artifacts,\nDVC remote cache,\nparquet datasets)" as S3
+  database "Secrets Manager" as SEC
+  node "Monitoring Stack" as MON {
+    artifact "Prometheus"
+    artifact "Grafana"
+    artifact "Loki (logs)"
+  }
+}
+
+cloud "Google Drive\n(DVC remote)" as GDRIVE
+cloud "Email / Slack" as ALERT
+
+USER --> NET : HTTPS
+NET  --> LB
+LB   --> APP1
+LB   --> APP2
+
+APP1 --> MLFNODE : load model (REST)
+APP2 --> MLFNODE
+APP1 --> PG     : write predictions / audit
+APP2 --> PG
+APP1 --> S3     : read features parquet
+APP2 --> S3
+APP1 --> SEC    : DB creds, API keys
+MLFNODE --> S3  : artifact store
+MLFNODE --> PG  : backend store
+
+TRAIN --> S3
+TRAIN --> MLFNODE : log runs / register model
+TRAIN <--> GDRIVE : dvc pull/push
+SCHED --> TRAIN : trigger
+SCHED --> MON   : drift job
+
+APP1 --> MON : /metrics
+APP2 --> MON : /metrics
+MON  --> ALERT : alerts when MAPE > threshold
+
+@enduml
+

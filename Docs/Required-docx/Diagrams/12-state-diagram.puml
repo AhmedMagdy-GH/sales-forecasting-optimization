@@ -1,0 +1,66 @@
+@startuml state-diagram
+title State Diagram — Forecasting Model Lifecycle
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+}
+
+[*] --> Created : create_run()
+
+state Created {
+  Created : MLflow run started
+  Created : params logged
+}
+
+Created  --> Training : start_fit()
+state Training {
+  Training : fitting XGBoost
+  Training : on each boosting round → log metric
+}
+
+Training --> Trained        : fit complete
+Training --> Failed         : exception / OOM
+
+state Trained {
+  Trained : model in memory
+  Trained : metrics computed
+}
+
+Trained  --> Evaluating     : evaluate(holdout)
+state Evaluating
+
+Evaluating --> Rejected     : MAPE > threshold
+Evaluating --> Registered   : MAPE <= threshold
+
+state Registered {
+  Registered : artifact in MLflow registry
+  Registered : version=N, stage=None
+}
+
+Registered --> Staging      : promote_to_staging()
+state Staging {
+  Staging : shadow traffic / A-B test
+}
+
+Staging   --> Production    : promote_to_production()
+Staging   --> Rejected      : regression detected
+state Production {
+  Production : serves real forecasts
+  Production : monitored for drift
+}
+
+Production --> Drifting     : drift_score > threshold
+state Drifting {
+  Drifting : alerts sent
+  Drifting : awaiting retrain
+}
+
+Drifting   --> Training     : trigger retrain
+Production --> Archived     : superseded by newer prod
+Rejected   --> Archived
+Archived   --> [*]
+Failed     --> [*]
+
+@enduml
+

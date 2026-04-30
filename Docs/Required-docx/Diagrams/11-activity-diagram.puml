@@ -1,0 +1,95 @@
+@startuml activity-diagram
+title Activity Diagram — End-to-End Sales Forecasting Workflow
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+  DiamondBackgroundColor #FFF6E5
+}
+
+|#E8F1FB|Business User|
+|#FFF6E5|Streamlit App|
+|#EAF7EA|ML Pipeline|
+|#F3E8FB|MLOps|
+
+|Business User|
+start
+:Login;
+:Upload sales CSV
+or pick existing dataset;
+
+|Streamlit App|
+:Validate schema & types;
+if (valid?) then (no)
+  :Show error;
+  stop
+else (yes)
+  :Persist to staging
+  + DVC track;
+endif
+
+|ML Pipeline|
+:Clean data
+(missing / outliers / dedupe);
+:Engineer features
+(lags, rolling, calendar);
+:Time-series CV split;
+fork
+  :Train XGBoost (trial 1);
+fork again
+  :Train XGBoost (trial N);
+end fork
+:Select best hyper-params;
+:Refit on full train;
+:Evaluate on hold-out;
+
+|MLOps|
+:Log params/metrics
+to MLflow;
+if (MAPE <= threshold?) then (yes)
+  :Register & promote
+  to Staging;
+  :Manual / auto promote
+  to Production;
+else (no)
+  :Keep previous prod model;
+  :Notify Data Scientist;
+endif
+
+|Business User|
+:Open Forecast page;
+:Select store / SKU / horizon
++ scenario flags;
+
+|Streamlit App|
+:Build feature row;
+
+|ML Pipeline|
+:Load production model
+from registry;
+:Predict horizon;
+
+|Streamlit App|
+:Render Plotly chart
++ KPI cards;
+
+|Business User|
+if (download?) then (yes)
+  :Get CSV / Excel;
+endif
+
+|MLOps|
+:Log prediction;
+:Compute drift metrics
+(scheduled);
+if (drift detected?) then (yes)
+  :Trigger retraining;
+  -[#red]-> ;
+  detach
+else (no)
+endif
+
+|Business User|
+stop
+@enduml
+

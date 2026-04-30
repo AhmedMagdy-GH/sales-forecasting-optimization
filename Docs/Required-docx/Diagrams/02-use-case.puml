@@ -1,0 +1,109 @@
+@startuml use-case
+title Sales Forecasting & Optimization — Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Business User\n(Sales / Inventory Manager)" as BU
+actor "Data Scientist"           as DS
+actor "ML Engineer / DevOps"     as MLE
+actor "System Administrator"     as ADM
+actor "Scheduler\n(Cron / Airflow)" as SCH <<system>>
+actor "MLflow Tracking Server"   as MLF <<system>>
+actor "DVC Remote (GDrive)"      as DVC <<system>>
+
+rectangle "Sales Forecasting Web App (Streamlit + XGBoost)" {
+
+  usecase "UC1  Login / Authenticate"            as UC1
+  usecase "UC2  Upload Sales Dataset (CSV)"       as UC2
+  usecase "UC3  Explore Data & EDA Dashboard"     as UC3
+  usecase "UC4  Configure Forecast\n(store, SKU, horizon)" as UC4
+  usecase "UC5  Generate Sales Forecast"          as UC5
+  usecase "UC6  Compare Scenarios\n(promo / holiday)"     as UC6
+  usecase "UC7  Download Forecast (CSV / Excel)"  as UC7
+  usecase "UC8  Visualize Forecast vs Actuals"    as UC8
+
+  usecase "UC9  Run Feature Engineering Pipeline" as UC9
+  usecase "UC10 Train & Tune XGBoost Model"       as UC10
+  usecase "UC11 Track Experiments"                as UC11
+  usecase "UC12 Register / Promote Model"         as UC12
+  usecase "UC13 Version Datasets (DVC push/pull)" as UC13
+
+  usecase "UC14 Deploy Model to Production"       as UC14
+  usecase "UC15 Monitor Model Drift & Metrics"    as UC15
+  usecase "UC16 Trigger Scheduled Retraining"     as UC16
+  usecase "UC17 Manage Users & Roles"             as UC17
+}
+
+' ----- Business User -----
+BU --> UC1
+BU --> UC2
+BU --> UC3
+BU --> UC4
+BU --> UC5
+BU --> UC6
+BU --> UC7
+BU --> UC8
+
+' ----- Data Scientist -----
+DS --> UC1
+DS --> UC9
+DS --> UC10
+DS --> UC11
+DS --> UC12
+DS --> UC13
+
+' ----- ML Engineer -----
+MLE --> UC12
+MLE --> UC14
+MLE --> UC15
+MLE --> UC16
+
+' ----- Admin -----
+ADM --> UC17
+ADM --> UC15
+
+' ----- System actors -----
+SCH --> UC16
+UC10 ..> MLF : <<uses>>
+UC11 ..> MLF : <<uses>>
+UC12 ..> MLF : <<uses>>
+UC13 ..> DVC : <<uses>>
+UC2  ..> DVC : <<uses>>
+
+' Includes / Extends
+UC5 .> UC4   : <<include>>
+UC6 .> UC5   : <<extend>>
+UC8 .> UC5   : <<extend>>
+UC10 .> UC9  : <<include>>
+
+@enduml
+
+
+' =============================================================
+' Use-case descriptions (textual companion — render as comments)
+' =============================================================
+' UC5 - Generate Sales Forecast
+'   Actor:        Business User
+'   Pre:          Logged in, dataset available, trained model in registry
+'   Main flow:    1. Select store, SKU, horizon, scenario flags
+'                 2. App calls ForecastService.predict()
+'                 3. XGBoost model returns predictions
+'                 4. UI plots forecast + confidence band
+'   Post:         Forecast cached in session, exportable
+'
+' UC10 - Train & Tune XGBoost Model
+'   Actor:        Data Scientist
+'   Pre:          Cleaned dataset (DVC-tracked) available
+'   Main flow:    1. Run feature pipeline
+'                 2. Time-series CV split
+'                 3. Hyper-parameter search (Optuna / GridSearch)
+'                 4. Log params/metrics/artifacts to MLflow
+'   Post:         Best model registered as candidate
+'
+' UC15 - Monitor Model Drift
+'   Actor:        ML Engineer
+'   Trigger:      Daily scheduled job
+'   Main flow:    Compute MAPE on latest data; if MAPE > threshold
+'                 → raise alert + trigger UC16 (retraining).
+

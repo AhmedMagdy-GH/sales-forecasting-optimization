@@ -1,0 +1,178 @@
+@startuml class-diagram
+title Class Diagram — Sales Forecasting Codebase
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+  ArrowColor     #2C6FBB
+}
+
+' =================== Data layer ===================
+class DataLoader {
+  + raw_path: Path
+  + load_raw(): pd.DataFrame
+  + load_processed(): pd.DataFrame
+  + save_processed(df: pd.DataFrame): None
+}
+
+class SchemaValidator {
+  + required_cols: List<str>
+  + validate(df: pd.DataFrame): bool
+  + report_errors(): Dict
+}
+
+class DataCleaner {
+  + handle_missing(df): pd.DataFrame
+  + remove_duplicates(df): pd.DataFrame
+  + clip_outliers(df, z: float = 4.0): pd.DataFrame
+  + run(df): pd.DataFrame
+}
+
+' =================== Feature layer ===================
+class FeatureEngineer {
+  + lag_periods: List<int>
+  + rolling_windows: List<int>
+  + add_calendar_features(df): pd.DataFrame
+  + add_lag_features(df, target: str): pd.DataFrame
+  + add_rolling_features(df, target: str): pd.DataFrame
+  + add_promo_holiday_flags(df): pd.DataFrame
+  + transform(df): pd.DataFrame
+}
+
+class FeatureStore {
+  + path: Path
+  + write(df): None
+  + read(store_id, sku_id, lookback): pd.DataFrame
+}
+
+' =================== Model layer ===================
+abstract class BaseForecaster {
+  + name: str
+  + {abstract} fit(X, y): BaseForecaster
+  + {abstract} predict(X): np.ndarray
+  + save(path): None
+  + {static} load(path): BaseForecaster
+}
+
+class XGBoostForecaster {
+  + params: Dict
+  + booster: xgb.Booster
+  + fit(X, y): XGBoostForecaster
+  + predict(X): np.ndarray
+  + feature_importance(): Dict
+}
+
+BaseForecaster <|-- XGBoostForecaster
+
+class HyperparamTuner {
+  + n_trials: int
+  + tune(X, y, splits): Dict
+  - _objective(trial): float
+}
+
+class TimeSeriesSplitter {
+  + n_splits: int
+  + split(df): Iterator
+}
+
+class Evaluator {
+  + rmse(y_true, y_pred): float
+  + mae (y_true, y_pred): float
+  + mape(y_true, y_pred): float
+  + report(y_true, y_pred): Dict
+}
+
+' =================== MLOps layer ===================
+class MLflowTracker {
+  + experiment_name: str
+  + start_run(): str
+  + log_params(p: Dict): None
+  + log_metrics(m: Dict): None
+  + log_model(model, name): None
+  + register_model(name): str
+  + transition_stage(name, version, stage): None
+}
+
+class DriftDetector {
+  + reference_stats: Dict
+  + compute_psi(current): float
+  + compute_mape_drift(actuals, preds): float
+  + is_drifted(): bool
+}
+
+' =================== Service layer ===================
+class ForecastService {
+  - feature_engineer: FeatureEngineer
+  - feature_store: FeatureStore
+  - model: BaseForecaster
+  + load_production_model(): None
+  + predict(store_id, sku_id, horizon, scenario): pd.DataFrame
+  + export(df, format: str): bytes
+}
+
+class EDAService {
+  - loader: DataLoader
+  + summary_statistics(df): pd.DataFrame
+  + correlation_matrix(df): pd.DataFrame
+  + seasonality_plot(df): Figure
+}
+
+class UploadService {
+  - validator: SchemaValidator
+  - loader: DataLoader
+  + handle_upload(file): bool
+}
+
+class ScenarioEngine {
+  + apply(df, promo: bool, holiday: bool): pd.DataFrame
+}
+
+' =================== Presentation ===================
+class StreamlitApp {
+  + run(): None
+  + page_home(): None
+  + page_eda(): None
+  + page_forecast(): None
+  + page_admin(): None
+}
+
+class AuthModule {
+  + authenticate(user, pwd): User
+  + require_role(role: str): None
+}
+
+class User {
+  + user_id: int
+  + username: str
+  + role: str
+}
+
+' =================== Relationships ===================
+StreamlitApp --> AuthModule
+StreamlitApp --> ForecastService
+StreamlitApp --> EDAService
+StreamlitApp --> UploadService
+StreamlitApp --> ScenarioEngine
+AuthModule    --> User
+
+UploadService --> SchemaValidator
+UploadService --> DataLoader
+EDAService    --> DataLoader
+ForecastService --> FeatureEngineer
+ForecastService --> FeatureStore
+ForecastService --> BaseForecaster
+ScenarioEngine  --> ForecastService
+
+FeatureEngineer --> FeatureStore
+HyperparamTuner --> XGBoostForecaster
+HyperparamTuner --> TimeSeriesSplitter
+HyperparamTuner --> Evaluator
+HyperparamTuner --> MLflowTracker
+XGBoostForecaster ..> MLflowTracker : log via
+DriftDetector --> Evaluator
+
+DataCleaner --> DataLoader
+
+@enduml
+

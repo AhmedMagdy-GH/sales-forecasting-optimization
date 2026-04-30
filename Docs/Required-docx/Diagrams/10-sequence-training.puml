@@ -1,0 +1,69 @@
+@startuml sequence-training
+title Sequence Diagram — Model Training & Registration Pipeline
+skinparam shadowing false
+
+actor "Data Scientist / Scheduler" as DS
+participant "Training CLI\n(train.py)"      as CLI
+participant "DataLoader"                    as DL
+participant "DVC"                           as DVC
+participant "Cleaner"                       as CLN
+participant "FeatureEngineer"               as FE
+participant "TimeSeriesSplitter"            as TSS
+participant "Optuna Tuner"                  as OPT
+participant "XGBoost Trainer"               as XGB
+participant "Evaluator"                     as EVAL
+participant "MLflow Tracking"               as MLF
+participant "MLflow Registry"               as REG
+
+DS -> CLI : python -m src.train --config conf/train.yaml
+
+CLI -> DVC : pull data/raw, data/processed
+DVC --> CLI: files synced
+
+CLI -> DL : load_raw()
+DL --> CLI: raw_df
+
+CLI -> CLN: clean(raw_df)
+CLN --> CLI: clean_df
+
+CLI -> FE : transform(clean_df)
+FE --> CLI: feature_df
+
+CLI -> TSS: split(feature_df, n_folds=5)
+TSS --> CLI: folds[]
+
+loop for each Optuna trial
+  CLI -> OPT : suggest(params)
+  OPT --> CLI: trial params
+  loop for each fold
+    CLI -> XGB  : fit(train_fold, params)
+    XGB --> CLI : booster
+    CLI -> EVAL : score(booster, val_fold)
+    EVAL --> CLI: rmse, mae, mape
+  end
+  CLI -> MLF : log_run(params, metrics)
+end
+
+CLI -> CLI : pick best params
+CLI -> XGB : refit(full_train, best_params)
+XGB --> CLI: final_model
+
+CLI -> EVAL : evaluate(final_model, holdout)
+EVAL --> CLI: final metrics
+
+CLI -> MLF : log_artifact(model.pkl, plots, feature_importance.json)
+CLI -> REG : register_model("sales_xgb")
+REG --> CLI: version=N
+
+alt MAPE_holdout <= 10%
+  CLI -> REG : transition_stage(version=N, stage="Staging")
+  CLI --> DS : training success
+else
+  CLI --> DS : accuracy regression — kept previous prod model
+end
+
+CLI -> DVC : push updated processed/ + features/
+DVC --> CLI: ok
+
+@enduml
+

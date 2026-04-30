@@ -1,0 +1,85 @@
+@startuml component-diagram
+title Component Diagram — Sales Forecasting System
+skinparam shadowing false
+skinparam component {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+}
+
+package "Frontend" {
+  [Streamlit UI]    as UI
+  [Auth Component]  as AUTH
+  [Plotly Charts]   as PLOT
+}
+
+package "Backend Services" {
+  [Forecast Service]   as FS
+  [EDA Service]        as EDA
+  [Upload Service]     as UP
+  [Scenario Engine]    as SCN
+  [Export Service]     as EXP
+}
+
+package "ML Core" {
+  [Feature Engineer] as FE
+  [XGBoost Model]    as XGB
+  [Tuner (Optuna)]   as TUN
+  [Evaluator]        as EVAL
+  [Drift Detector]   as DRIFT
+}
+
+package "MLOps" {
+  [MLflow Tracking & Registry] as MLF
+  [DVC CLI / Python API]       as DVC
+  [Scheduler (GH Actions)]     as SCHED
+}
+
+package "Persistence" {
+  database "Parquet Feature Store" as FEAT
+  database "PostgreSQL"            as PG
+  database "Object Storage (S3)"   as S3
+}
+
+' --- interfaces ---
+interface "HTTP/HTTPS"  as IHTTP
+interface "REST/MLflow" as IMLF
+interface "FS / S3 API" as IFS
+interface "DB API"      as IDB
+
+UI -down-( IHTTP
+IHTTP -- AUTH
+UI --> FS
+UI --> EDA
+UI --> UP
+UI --> SCN
+UI --> EXP
+UI --> PLOT
+
+FS  --> FE
+FS  --> XGB
+FS  ..> IMLF
+IMLF -- MLF
+EDA --> FEAT
+UP  --> DVC
+UP  --> S3
+SCN --> FS
+EXP --> PG
+
+FE  --> FEAT
+TUN --> XGB
+TUN --> EVAL
+TUN ..> IMLF
+DRIFT --> PG : reads predictions/actuals
+DRIFT --> SCHED : raises retrain
+SCHED --> TUN : triggers training
+
+XGB ..> IFS
+IFS -- S3 : load model artifact
+MLF --> PG : backend store
+MLF --> S3 : artifact store
+
+FS  ..> IDB
+IDB -- PG
+
+@enduml
+

@@ -1,0 +1,79 @@
+@startuml dfd-level1
+title DFD — Level 1 (Detailed)
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #E8F1FB
+  BorderColor    #2C6FBB
+}
+skinparam database {
+  BackgroundColor #FCE8E8
+  BorderColor    #B33A3A
+}
+
+actor "Business User"  as BU
+actor "Data Scientist" as DS
+actor "Scheduler"      as SCH
+
+rectangle "P1\nIngest & Validate Data"        as P1
+rectangle "P2\nClean & Preprocess"            as P2
+rectangle "P3\nFeature Engineering"           as P3
+rectangle "P4\nTrain & Tune XGBoost"          as P4
+rectangle "P5\nEvaluate & Register Model"     as P5
+rectangle "P6\nServe Forecast (Streamlit)"    as P6
+rectangle "P7\nMonitor Drift"                 as P7
+rectangle "P8\nExport Results"                as P8
+
+database "D1\nRaw Sales\n(CSV / DVC)"         as D1
+database "D2\nProcessed Data\n(parquet)"      as D2
+database "D3\nFeature Store\n(parquet)"       as D3
+database "D4\nModel Registry\n(MLflow)"       as D4
+database "D5\nPredictions Log\n(SQLite)"      as D5
+database "D6\nMetrics Store\n(MLflow)"        as D6
+
+' --- Inputs ---
+BU  --> P1 : upload CSV
+DS  --> P1 : raw data path
+SCH --> P4 : retrain trigger
+
+' --- P1 ---
+P1 --> D1 : valid raw data
+P1 --> P2 : clean signal
+
+' --- P2 ---
+D1 --> P2
+P2 --> D2
+
+' --- P3 ---
+D2 --> P3
+P3 --> D3
+
+' --- P4 ---
+D3 --> P4
+DS --> P4 : hyper-params
+P4 --> D6 : runs
+P4 --> P5 : trained model
+
+' --- P5 ---
+P5 --> D4 : registered model
+P5 --> D6 : eval metrics
+P5 --> DS : performance report
+
+' --- P6 ---
+BU --> P6 : forecast request
+D4 --> P6 : load model
+D3 --> P6 : feature lookup
+P6 --> D5 : prediction record
+P6 --> BU : forecast + chart
+P6 --> P8 : forecast df
+
+' --- P7 ---
+D5 --> P7
+D2 --> P7 : actuals
+P7 --> SCH : drift alert / retrain
+P7 --> DS  : drift report
+
+' --- P8 ---
+P8 --> BU : CSV / Excel download
+
+@enduml
+

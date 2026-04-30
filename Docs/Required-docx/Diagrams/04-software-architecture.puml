@@ -1,0 +1,93 @@
+@startuml software-architecture
+title Sales Forecasting & Optimization — Software Architecture (Layered + ML Pipeline)
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #FAFCFF
+  BorderColor    #2C6FBB
+}
+
+actor "Business User"  as BU
+actor "Data Scientist" as DS
+
+package "Presentation Layer" #E8F1FB {
+  [Streamlit Web App]            as UI
+  [Plotly Charts]                as PLOT
+  [Auth Module (streamlit-authenticator)] as AUTH
+}
+
+package "Application / Service Layer" #FFF6E5 {
+  [Forecast Service]   as FS
+  [EDA Service]        as EDA
+  [Data Upload Service] as UP
+  [Scenario Engine]    as SCN
+  [Export Service]     as EXP
+}
+
+package "ML / Domain Layer" #EAF7EA {
+  [Feature Engineering] as FE
+  [XGBoost Model Wrapper] as XGB
+  [Hyper-parameter Tuner\n(Optuna)] as TUNE
+  [Evaluator\n(RMSE / MAE / MAPE)] as EVAL
+  [Drift Detector]     as DRIFT
+}
+
+package "MLOps Layer" #F3E8FB {
+  [MLflow Tracking]    as MLF
+  [MLflow Model Registry] as REG
+  [DVC (Data Versioning)] as DVC
+  [Scheduler\n(cron / GitHub Actions)] as SCHED
+}
+
+package "Data Layer" #FCE8E8 {
+  database "Raw Sales CSV"        as RAW
+  database "Processed Parquet"    as PROC
+  database "Feature Store\n(parquet/SQLite)" as FEAT
+  database "Predictions Log\n(SQLite)" as PRED
+  cloud    "Google Drive\n(DVC remote)" as GDRIVE
+}
+
+' --- Connections ---
+BU --> AUTH
+DS --> AUTH
+AUTH --> UI
+UI --> FS
+UI --> EDA
+UI --> UP
+UI --> SCN
+UI --> EXP
+UI ..> PLOT
+
+UP  --> RAW
+EDA --> PROC
+FS  --> XGB
+FS  --> FE
+SCN --> FS
+EXP --> PRED
+
+FE  --> FEAT
+FE  --> PROC
+XGB --> REG : load model
+TUNE --> XGB
+TUNE --> MLF
+EVAL --> MLF
+DRIFT --> PRED
+DRIFT --> SCHED : trigger retrain
+
+SCHED --> TUNE
+RAW  --> DVC
+PROC --> DVC
+FEAT --> DVC
+DVC  <--> GDRIVE
+REG  --> XGB : versioned artifact
+
+note right of UI
+  **Architecture style:**
+  • Layered (N-tier) presentation/service/ML/data
+  • ML pipeline pattern (Kedro-like)
+  • Stateless containers behind reverse proxy
+  • Asynchronous retraining via scheduler
+end note
+
+@enduml
+

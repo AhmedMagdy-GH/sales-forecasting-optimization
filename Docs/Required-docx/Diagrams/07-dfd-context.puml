@@ -1,0 +1,36 @@
+@startuml dfd-context
+title DFD — Level 0 (Context Diagram)
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #E8F1FB
+  BorderColor    #2C6FBB
+}
+skinparam actor {
+  BackgroundColor #FFF6E5
+}
+left to right direction
+
+actor "Business User"   as BU
+actor "Data Scientist"  as DS
+actor "Scheduler"       as SCH
+
+rectangle "**Sales Forecasting & Optimization System**\n(Streamlit + XGBoost + MLflow + DVC)" as SYS
+
+actor "Google Drive\n(DVC Remote)" as GDRIVE
+actor "MLflow Tracking Server"     as MLF
+actor "Email / Slack Alerts"       as ALERT
+
+BU     --> SYS  : sales CSV, forecast request, scenario params
+SYS    --> BU   : forecast charts, KPIs, downloadable CSV/Excel
+
+DS     --> SYS  : raw data, training trigger, hyper-params
+SYS    --> DS   : run metrics, model artifacts
+
+SCH    --> SYS  : retrain trigger (cron)
+SYS    --> ALERT: drift / failure notifications
+
+SYS    <--> GDRIVE : push/pull versioned data (DVC)
+SYS    <--> MLF    : log params/metrics, fetch registered model
+
+@enduml
+
