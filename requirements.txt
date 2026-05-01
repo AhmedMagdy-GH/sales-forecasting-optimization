@@ -1,2 +1,6 @@
 #Core Date Science Libraries
 pandas>=2.3.3
+numpy>=2.3.4
+
+# Data Visualization
+matplotlib>=3.10.7
