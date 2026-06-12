@@ -39,7 +39,23 @@ dvc_google_drive_setup:
         - git add .dvc/config
         - git commit -m "Configure Google Drive DVC remote"
 
-    5_google_cloud_project:
+    User based (OAuth): 
+        # User based (OAuth): 
+        # Everyone connects with their own Google account.
+        # Tokens expire after 7 days in Testing mode.
+        # You can publish the app to Production mode to avoid expiration,
+        # but each team member still needs to authenticate individually
+        # by running `dvc push` once in the browser.
+        # Best for: solo projects or small teams where everyone has Google access.
+
+        # Service Account (Recommended for teams):
+        # One shared bot account authenticates on behalf of the whole team.
+        # Tokens never expire.
+        # Everyone uses the same JSON key file stored locally (never committed to Git).
+        # No browser login needed — works silently in the background.
+        # Best for: team projects, CI/CD pipelines, and automation. 
+
+    5_google_cloud_project (OAuth):
       title: Create a Google Cloud Project (to fix auth errors)
       reason: >
         Using DVC's default credentials causes "App blocked" or "access_denied"
@@ -134,3 +150,113 @@ dvc_google_drive_setup:
     - Add .dvc/config.local to .gitignore if it contains secrets
     - For CI/CD pipelines, use a Service Account instead of OAuth
     - The Test User limit is 100 users while app is in Testing mode
+
+#________________________________________________________________________________________
+5_google_cloud_project (Service Account):
+      title: Create a Google Cloud Project
+      reason: >
+        Using a Service Account avoids token expiration and browser login.
+        Best for team projects — everyone uses the same key file silently.
+      steps:
+        - Go to https://console.cloud.google.com
+        - Click "New Project"
+        - Name it e.g. "dvc-remote" and click Create
+
+    6_enable_drive_api:
+      title: Enable Google Drive API
+      steps:
+        - Go to APIs & Services > Library
+        - Search for "Google Drive API"
+        - Click Enable
+
+    7_create_service_account:
+      title: Create a Service Account
+      steps:
+        - Go to IAM & Admin > Service Accounts
+        - Click "+ Create Service Account"
+        - Fill in:
+            name: "dvc-remote"
+            description: "Service account for DVC Google Drive remote"
+        - Click "Create and Continue"
+        - Skip the optional role and user access steps
+        - Click Done
+
+    8_download_key:
+      title: Download the Service Account JSON Key
+      steps:
+        - Click on the service account you just created
+        - Go to the "Keys" tab
+        - Click "Add Key" > "Create new key"
+        - Choose JSON and click Create
+        - A JSON file will download to your PC
+        - warning: >
+            Never commit this file to Git.
+            Share it with teammates privately (WhatsApp, email, etc.)
+            Add it to .gitignore immediately:
+              echo "*.json" >> .gitignore
+
+    9_share_drive_folder:
+      title: Share your Google Drive folder with the Service Account
+      steps:
+        - Open the downloaded JSON file in any text editor
+        - Copy the value of "client_email"
+          (looks like dvc-remote@your-project.iam.gserviceaccount.com)
+        - Go to Google Drive
+        - Right-click your DVC remote folder > Share
+        - Paste the client_email as the recipient
+        - Set permission to "Editor"
+        - Uncheck "Notify people"
+        - Click Share
+
+    10_configure_dvc:
+      title: Configure DVC to use the Service Account
+      commands:
+        - dvc remote modify mydrive gdrive_use_service_account true
+        - dvc remote modify mydrive --local gdrive_service_account_json_file_path "C:\path\to\your-key.json"
+      note: >
+        The --local flag saves the path only on your machine.
+        It goes into .dvc/config.local which is gitignored by default.
+        Each teammate runs this command with their own local path to the key file.
+
+    11_remove_old_oauth_credentials:
+      title: Remove old OAuth credentials (if switching from OAuth)
+      commands:
+        - dvc remote modify mydrive --local --unset gdrive_client_id
+        - dvc remote modify mydrive --local --unset gdrive_client_secret
+      note: >
+        Skip this step if you never configured OAuth credentials before.
+
+    12_clear_old_token_cache:
+      title: Clear old cached OAuth token
+      commands:
+        windows:
+          - Remove-Item -Recurse -Force "$env:LOCALAPPDATA\pydrive2fs" -ErrorAction SilentlyContinue
+          - Remove-Item -Recurse -Force "$env:APPDATA\pydrive2fs" -ErrorAction SilentlyContinue
+      note: >
+        Skip this step if you never authenticated with OAuth before.
+
+    13_track_and_push_data:
+      title: Track data and push to Google Drive
+      commands:
+        - dvc add data/             # track your data folder or file
+        - git add data.dvc .gitignore
+        - git commit -m "Track data with DVC"
+        - dvc push                  # uploads data silently, no browser login needed
+      note: >
+        No browser window will open.
+        Service Account authenticates silently in the background.
+        Tokens never expire.
+
+    14_pull_data_on_another_machine:
+      title: Pull data on a different machine (teammate setup)
+      steps:
+        - Clone the repo:
+            git clone <your-repo-url>
+        - Place the shared JSON key file anywhere on your machine
+        - Run:
+            dvc remote modify mydrive --local gdrive_service_account_json_file_path "C:\path\to\your-key.json"
+        - Pull the data:
+            dvc pull
+      note: >
+        Each teammate only needs to run the modify command once.
+        After that, dvc pull and dvc push work forever with no re-authentication.
