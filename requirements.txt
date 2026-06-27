@@ -1,0 +1,33 @@
+# ============================================================
+# Rossmann Sales Forecasting — Unified Requirements
+# Supports: Training + MLflow + DVC + Streamlit Deployment
+# Python 3.11
+# Generated: 2026-06-27
+# ============================================================
+
+# ── Core Data Science ────────────────────────────────────────
+numpy==1.26.4
+pandas==2.2.2
+
+# ── Data Storage & I/O ─────────────────────────────────────
+pyarrow==15.0.0
+fastparquet==2024.2.0
+
+# ── Data Visualization ───────────────────────────────────────
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# ── Machine Learning ─────────────────────────────────────────
+scikit-learn==1.4.2
+xgboost==2.0.3
+lightgbm==4.3.0
+joblib==1.4.0
+
+# ── MLOps & Experiment Tracking ──────────────────────────────
+mlflow==2.12.2
+
+# ── Data Version Control ─────────────────────────────────────
+dvc[gdrive]==3.51.2
+
+# ── Web Deployment ───────────────────────────────────────────
+streamlit==1.35.0
