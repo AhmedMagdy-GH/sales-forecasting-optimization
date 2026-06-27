@@ -434,3 +434,333 @@ if predict:
     # --- 4. Display results ---
     display_result(prediction, input_data)
 
+# ==========================================
+# SIDEBAR
+# ==========================================
+
+with st.sidebar:
+
+    st.title("🏪 Rossmann")
+    st.caption("Sales Forecasting Dashboard")
+    st.divider()
+
+    st.success("Machine Learning Model")
+    st.markdown(f"""
+**{meta['model']}**
+
+**Pipeline**
+
+- StandardScaler
+- LightGBM Regressor
+""")
+
+    st.divider()
+    st.success("Technologies")
+    st.markdown("""
+- Python
+- Streamlit
+- LightGBM
+- Pandas
+- NumPy
+- Scikit-Learn
+- Joblib
+""")
+
+    st.divider()
+    st.success("Performance")
+    st.metric("R² Score", f"{meta['r2']:.4f}")
+    st.metric("MAE",      f"€{meta['mae_orig']:,.0f}")
+    st.metric("RMSE",     f"€{meta['rmse_orig']:,.0f}")
+
+# ==========================================
+# HEADER
+# ==========================================
+
+st.title("🏪 Rossmann Sales Forecasting")
+st.caption("Machine Learning Deployment using Streamlit & LightGBM")
+st.divider()
+
+left, right = st.columns([3, 1])
+# ==========================================
+# RIGHT PANEL — Model Summary Cards
+# ==========================================
+
+with right:
+
+    st.markdown("### 🤖 Model")
+
+    panel_items = [
+        ("Algorithm", "LightGBM"),
+        ("Features",  str(len(FEATURES))),
+        ("R² Score",  f"{meta['r2']:.4f}"),
+        ("MAE",       f"€{meta['mae_orig']:,.0f}"),
+        ("RMSE",      f"€{meta['rmse_orig']:,.0f}"),
+    ]
+
+    for title, value in panel_items:
+        st.markdown(
+            f"""
+            <div class="metric-card">
+                <div class="metric-title">{title}</div>
+                <div class="metric-value">{value}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+# ==========================================
+# INPUT FORM — Store Information
+# ==========================================
+
+with left:
+
+    st.subheader("📊 Store Information")
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        Store_TargetEnc = st.number_input(
+            "Store Target Encoding",
+            value=8.50,
+            format="%.4f",
+            help="Target-encoded store identifier derived from historical mean sales."
+        )
+
+        CompetitionDistance = st.number_input(
+            "Competition Distance (m)",
+            value=500.0,
+            min_value=0.0,
+            help="Distance in metres to the nearest competitor store."
+        )
+
+        CompetitionDistanceMissing = st.selectbox(
+            "Competition Distance Missing",
+            [0, 1],
+            help="1 if CompetitionDistance was originally missing in the raw data."
+        )
+
+        CompetitionOpenMissing = st.selectbox(
+            "Competition Open Missing",
+            [0, 1],
+            help="1 if CompetitionOpenSince fields were originally missing."
+        )
+
+    with c2:
+
+        DayOfWeek = st.selectbox(
+            "Day Of Week",
+            [1, 2, 3, 4, 5, 6, 7],
+            index=4,
+            help="1 = Monday … 7 = Sunday."
+        )
+
+        StoreType = st.selectbox(
+            "Store Type",
+            [0, 1, 2, 3],
+            help="Label-encoded store category (a=0, b=1, c=2, d=3)."
+        )
+
+        Assortment = st.selectbox(
+            "Assortment",
+            [0, 1, 2],
+            help="Label-encoded assortment level (a=0, b=1, c=2)."
+        )
+
+# ==========================================
+# INPUT FORM — Promotion Information
+# ==========================================
+
+st.divider()
+st.subheader("🎁 Promotion Information")
+
+c1, c2 = st.columns(2)
+
+with c1:
+
+    Promo = st.selectbox(
+        "Promo",
+        [0, 1],
+        help="1 if the store is running a promotion on this day."
+    )
+
+    Promo2 = st.selectbox(
+        "Promo2",
+        [0, 1],
+        help="1 if the store participates in the continuous Promo2 promotion."
+    )
+
+    Promo2ActiveWeeks = st.number_input(
+        "Promo2 Active Weeks",
+        value=0.0,
+        min_value=0.0,
+        help="Number of weeks since Promo2 started for this store."
+    )
+
+with c2:
+
+    SchoolHoliday = st.selectbox(
+        "School Holiday",
+        [0, 1],
+        help="1 if the date falls within a school holiday period."
+    )
+
+    StateHoliday = st.selectbox(
+        "State Holiday",
+        [0, 1],
+        help="1 if the date is a public / state holiday."
+    )
+
+    IsPromo2Active = st.selectbox(
+        "Promo2 Active",
+        [0, 1],
+        help="1 if Promo2 is currently active for this store on this date."
+    )
+
+# ==========================================
+# INPUT FORM — Calendar Information
+# ==========================================
+
+st.divider()
+st.subheader("📅 Calendar Information")
+
+c1, c2 = st.columns(2)
+
+with c1:
+
+    Year = st.number_input(
+        "Year",
+        min_value=2013,
+        max_value=2030,
+        value=2015,
+        help="Calendar year of the forecast date."
+    )
+
+    Week = st.number_input(
+        "Week",
+        min_value=1,
+        max_value=53,
+        value=30,
+        help="ISO calendar week number (1–53)."
+    )
+
+    IsWeekend = st.selectbox(
+        "Weekend",
+        [0, 1],
+        help="1 if DayOfWeek is Saturday (6) or Sunday (7)."
+    )
+
+with c2:
+
+    IsMonthStart = st.selectbox(
+        "Month Start",
+        [0, 1],
+        help="1 if this is the first day of the month."
+    )
+
+    IsMonthEnd = st.selectbox(
+        "Month End",
+        [0, 1],
+        help="1 if this is the last day of the month."
+    )
+
+# ==========================================
+# INPUT FORM — Competition Information
+# ==========================================
+
+st.divider()
+st.subheader("🏢 Competition Information")
+
+c1, c2 = st.columns(2)
+
+with c1:
+
+    CompetitionOpenMonths = st.number_input(
+        "Competition Open Months",
+        value=12.0,
+        min_value=0.0,
+        help="Number of months the nearest competitor has been open."
+    )
+
+with c2:
+
+    st.info(
+        "Enter the competition information before generating the prediction."
+    )
+
+# ==========================================
+# PREDICT BUTTON
+# ==========================================
+
+st.divider()
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    predict = st.button(
+        "🚀 Predict Sales",
+        use_container_width=True
+    )
+# ==========================================
+# FOOTER
+# ==========================================
+
+st.divider()
+
+footer_left, footer_center, footer_right = st.columns(3)
+
+with footer_left:
+    st.info("""
+### 🏪 Project
+
+Rossmann Sales Forecasting
+
+Machine Learning Deployment
+""")
+
+with footer_center:
+    st.info("""
+### ⚙️ Technologies
+
+- Python
+- Streamlit
+- LightGBM
+- Scikit-Learn
+- Pandas
+""")
+
+with footer_right:
+    st.info(f"""
+### 📊 Model Performance
+
+R² : {meta['r2']:.4f}
+
+MAE : €{meta['mae_orig']:,.0f}
+
+RMSE : €{meta['rmse_orig']:,.0f}
+""")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+st.markdown("""
+<div style="
+    background: #1E1E1E;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    border-top: 4px solid #00E676;
+">
+    <h3 style="color: white;">
+        🏪 Rossmann Sales Forecasting Dashboard
+    </h3>
+    <p style="color: #CFCFCF; font-size: 18px;">
+        Graduation Project
+    </p>
+    <p style="color: #9E9E9E;">
+        Machine Learning Deployment using Streamlit
+    </p>
+    <p style="color: #00E676; font-weight: bold;">
+        LightGBM • Python • Streamlit
+    </p>
+</div>
+""", unsafe_allow_html=True)
