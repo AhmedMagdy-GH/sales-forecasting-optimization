@@ -372,67 +372,6 @@ Predictions are converted back with `np.expm1(prediction)` before display.
 
 
 
-# ==========================================
-# PREDICTION WORKFLOW
-# ==========================================
-
-if predict:
-
-    # --- 1. Validate inputs ---
-    validation_warnings = validate_inputs(
-        store_target_enc=Store_TargetEnc,
-        competition_distance=CompetitionDistance,
-        competition_open_months=CompetitionOpenMonths,
-        promo2_active_weeks=Promo2ActiveWeeks,
-        week=int(Week),
-        year=int(Year),
-    )
-
-    if validation_warnings:
-        for warning_msg in validation_warnings:
-            st.warning(f"⚠️ {warning_msg}")
-        st.info(
-            "The prediction will still run, but results may be less reliable "
-            "for inputs outside the training distribution."
-        )
-
-    # --- 2. Build input DataFrame in training column order ---
-    input_data = build_input_dataframe({
-        "Store_TargetEnc":          Store_TargetEnc,
-        "DayOfWeek":                DayOfWeek,
-        "CompetitionDistance":      CompetitionDistance,
-        "CompetitionDistanceMissing": CompetitionDistanceMissing,
-        "CompetitionOpenMissing":   CompetitionOpenMissing,
-        "StateHoliday":             StateHoliday,
-        "SchoolHoliday":            SchoolHoliday,
-        "Promo":                    Promo,
-        "Promo2":                   Promo2,
-        "StoreType":                StoreType,
-        "Assortment":               Assortment,
-        "Year":                     Year,
-        "Week":                     Week,
-        "IsWeekend":                IsWeekend,
-        "IsMonthStart":             IsMonthStart,
-        "IsMonthEnd":               IsMonthEnd,
-        "CompetitionOpenMonths":    CompetitionOpenMonths,
-        "Promo2ActiveWeeks":        Promo2ActiveWeeks,
-        "IsPromo2Active":           IsPromo2Active,
-    })
-
-    # --- 3. Progress feedback & inference ---
-    progress = st.progress(0, text="Preparing data…")
-    progress.progress(40, text="Running model…")
-
-    try:
-        prediction = run_prediction(input_data)
-    except Exception as exc:
-        st.error(f"❌ Prediction failed: {exc}")
-        st.stop()
-
-    progress.progress(100, text="Prediction complete ✅")
-
-    # --- 4. Display results ---
-    display_result(prediction, input_data)
 
 # ==========================================
 # SIDEBAR
@@ -701,6 +640,68 @@ with col2:
         "🚀 Predict Sales",
         use_container_width=True
     )
+    
+# ==========================================
+# PREDICTION WORKFLOW
+# ==========================================
+
+if predict:
+
+    # --- 1. Validate inputs ---
+    validation_warnings = validate_inputs(
+        store_target_enc=Store_TargetEnc,
+        competition_distance=CompetitionDistance,
+        competition_open_months=CompetitionOpenMonths,
+        promo2_active_weeks=Promo2ActiveWeeks,
+        week=int(Week),
+        year=int(Year),
+    )
+
+    if validation_warnings:
+        for warning_msg in validation_warnings:
+            st.warning(f"⚠️ {warning_msg}")
+        st.info(
+            "The prediction will still run, but results may be less reliable "
+            "for inputs outside the training distribution."
+        )
+
+    # --- 2. Build input DataFrame in training column order ---
+    input_data = build_input_dataframe({
+        "Store_TargetEnc":          Store_TargetEnc,
+        "DayOfWeek":                DayOfWeek,
+        "CompetitionDistance":      CompetitionDistance,
+        "CompetitionDistanceMissing": CompetitionDistanceMissing,
+        "CompetitionOpenMissing":   CompetitionOpenMissing,
+        "StateHoliday":             StateHoliday,
+        "SchoolHoliday":            SchoolHoliday,
+        "Promo":                    Promo,
+        "Promo2":                   Promo2,
+        "StoreType":                StoreType,
+        "Assortment":               Assortment,
+        "Year":                     Year,
+        "Week":                     Week,
+        "IsWeekend":                IsWeekend,
+        "IsMonthStart":             IsMonthStart,
+        "IsMonthEnd":               IsMonthEnd,
+        "CompetitionOpenMonths":    CompetitionOpenMonths,
+        "Promo2ActiveWeeks":        Promo2ActiveWeeks,
+        "IsPromo2Active":           IsPromo2Active,
+    })
+
+    # --- 3. Progress feedback & inference ---
+    progress = st.progress(0, text="Preparing data…")
+    progress.progress(40, text="Running model…")
+
+    try:
+        prediction = run_prediction(input_data)
+    except Exception as exc:
+        st.error(f"❌ Prediction failed: {exc}")
+        st.stop()
+
+    progress.progress(100, text="Prediction complete ✅")
+
+    # --- 4. Display results ---
+    display_result(prediction, input_data)
 # ==========================================
 # FOOTER
 # ==========================================
