@@ -186,7 +186,9 @@ meta  = load_model_meta()
 def validate_inputs(
     store_target_enc: float,
     competition_distance: float,
+    competition_distance_missing: int,
     competition_open_months: float,
+    competition_open_missing: int,
     promo2_active_weeks: float,
     week: int,
     year: int,
@@ -240,6 +242,17 @@ def validate_inputs(
         warnings_out.append(
             f"Year ({year}) must be between {lo} and {hi}."
         )
+    # Check for inconsistent competition distance inputs
+    if competition_distance_missing == 1 and competition_distance > 0:
+        warnings_out.append(
+            "Competition Distance is provided, so Competition Distance Missing should be 0."
+    )
+
+    # Check for inconsistent competition open inputs
+    if competition_open_missing == 1 and competition_open_months > 0:
+        warnings_out.append(
+            "Competition Open Months is provided, so Competition Open Missing should be 0."
+    )
 
     return warnings_out
 
@@ -493,7 +506,9 @@ with left:
             index=4,
             help="1 = Monday … 7 = Sunday."
         )
-
+        # Automatically derive IsWeekend from the selected DayOfWeek.
+        IsWeekend = 1 if DayOfWeek in [6, 7] else 0
+        
         StoreType = st.selectbox(
             "Store Type",
             [0, 1, 2, 3],
@@ -583,11 +598,6 @@ with c1:
         help="ISO calendar week number (1–53)."
     )
 
-    IsWeekend = st.selectbox(
-        "Weekend",
-        [0, 1],
-        help="1 if DayOfWeek is Saturday (6) or Sunday (7)."
-    )
 
 with c2:
 
@@ -651,7 +661,9 @@ if predict:
     validation_warnings = validate_inputs(
         store_target_enc=Store_TargetEnc,
         competition_distance=CompetitionDistance,
+        competition_distance_missing=CompetitionDistanceMissing,
         competition_open_months=CompetitionOpenMonths,
+        competition_open_missing=CompetitionOpenMissing,
         promo2_active_weeks=Promo2ActiveWeeks,
         week=int(Week),
         year=int(Year),
