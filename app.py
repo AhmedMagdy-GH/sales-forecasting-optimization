@@ -246,13 +246,13 @@ def validate_inputs(
     if competition_distance_missing == 1 and competition_distance > 0:
         warnings_out.append(
             "Competition Distance is provided, so Competition Distance Missing should be 0."
-    )
+        )
 
     # Check for inconsistent competition open inputs
     if competition_open_missing == 1 and competition_open_months > 0:
         warnings_out.append(
             "Competition Open Months is provided, so Competition Open Missing should be 0."
-    )
+        )
 
     return warnings_out
 
