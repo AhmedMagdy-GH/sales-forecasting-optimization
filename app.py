@@ -699,7 +699,7 @@ if predict:
         st.stop()
 
     progress.progress(100, text="Prediction complete ✅")
-
+    progress.empty()
     # --- 4. Display results ---
     display_result(prediction, input_data)
 # ==========================================
