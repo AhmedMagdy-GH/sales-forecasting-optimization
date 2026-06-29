@@ -17,6 +17,6 @@ description: 'LightGBM regression pipeline for Rossmann Store Sales Forecasting.
   - Target: Log-transformed daily sales (reversed with expm1 at inference)
 
   - Deployed via: Streamlit'
-last_updated_timestamp: 1782696058768
+last_updated_timestamp: 1782697684806
 name: rossmann-sales-forecasting-model
 workspace: default
