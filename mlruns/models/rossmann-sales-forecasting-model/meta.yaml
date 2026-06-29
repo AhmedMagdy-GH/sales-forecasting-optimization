@@ -1,5 +1,22 @@
-aliases: {}
+aliases:
+  champion: '2'
 creation_timestamp: 1781475514742
-description: null
-last_updated_timestamp: 1782575163133
+deployment_job_id: null
+deployment_job_state: null
+description: 'LightGBM regression pipeline for Rossmann Store Sales Forecasting.
+
+
+  - Dataset: 844,338 records | 1,115 stores
+
+  - Features: 19 engineered features
+
+  - Best Performance: R² = 0.8266 | MAE = €825 | RMSE = €1,182
+
+  - Pipeline: StandardScaler → LightGBM Regressor
+
+  - Target: Log-transformed daily sales (reversed with expm1 at inference)
+
+  - Deployed via: Streamlit'
+last_updated_timestamp: 1782691455162
 name: rossmann-sales-forecasting-model
+workspace: default
