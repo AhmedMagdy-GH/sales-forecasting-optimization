@@ -212,7 +212,7 @@ dvc_google_drive_setup:
       title: Configure DVC to use the Service Account
       commands:
         - dvc remote modify mydrive gdrive_use_service_account true
-        - dvc remote modify mydrive --local gdrive_service_account_json_file_path "C:\path\to\your-key.json"
+        - dvc remote modify mydrive --local gdrive_service_account_json_file_path "C:\path\to\your-key.json
       note: >
         The --local flag saves the path only on your machine.
         It goes into .dvc/config.local which is gitignored by default.
