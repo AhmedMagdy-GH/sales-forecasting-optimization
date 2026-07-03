@@ -1,0 +1,15 @@
+artifact_uri: file:///f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/mlruns/819104580915523654/d2a2b217b1b741688edb9cc468734719/artifacts
+deleted_time: 1782698474556
+end_time: 1782695987513
+entry_point_name: ''
+experiment_id: '819104580915523654'
+lifecycle_stage: deleted
+run_id: d2a2b217b1b741688edb9cc468734719
+run_name: LightGBM_tuned
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1782695950624
+status: 3
+tags: []
+user_id: MSH

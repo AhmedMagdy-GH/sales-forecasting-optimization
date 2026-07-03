@@ -1,0 +1,23 @@
+artifact_path: file:///f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/mlruns/819104580915523654/models/m-aae1745884f34014bf0fe1df1f3926f1/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.1
+    skops_trusted_types: null
+mlflow_version: 3.12.0
+model_id: m-aae1745884f34014bf0fe1df1f3926f1
+model_size_bytes: 7005461
+model_uuid: m-aae1745884f34014bf0fe1df1f3926f1
+prompts: null
+run_id: 02129a6f59de4f7d9fe5c4924c0f01a6
+utc_time_created: '2026-06-29 01:20:43.752497'

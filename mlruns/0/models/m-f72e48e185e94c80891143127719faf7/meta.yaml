@@ -1,0 +1,10 @@
+artifact_location: file:f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/Notebooks/Preprocessing/../../mlruns/0/models/m-f72e48e185e94c80891143127719faf7/artifacts
+creation_timestamp: 1781617593326
+experiment_id: '0'
+last_updated_timestamp: 1781617602488
+model_id: m-f72e48e185e94c80891143127719faf7
+model_type: null
+name: best_model
+source_run_id: d2005780bf9f4fbd85d9391b9556fa24
+status: 2
+status_message: null

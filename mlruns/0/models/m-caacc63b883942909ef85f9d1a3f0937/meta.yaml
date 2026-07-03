@@ -1,0 +1,10 @@
+artifact_location: file:f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/Notebooks/Preprocessing/../../mlruns/0/models/m-caacc63b883942909ef85f9d1a3f0937/artifacts
+creation_timestamp: 1781617500248
+experiment_id: '0'
+last_updated_timestamp: 1781617512520
+model_id: m-caacc63b883942909ef85f9d1a3f0937
+model_type: null
+name: lgbm_model
+source_run_id: 80fc60bef208444198bd2ab6472b4ee2
+status: 2
+status_message: null

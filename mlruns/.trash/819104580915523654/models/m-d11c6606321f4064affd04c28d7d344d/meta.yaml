@@ -1,0 +1,10 @@
+artifact_location: file:///f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/mlruns/819104580915523654/models/m-d11c6606321f4064affd04c28d7d344d/artifacts
+creation_timestamp: 1782693947112
+experiment_id: '819104580915523654'
+last_updated_timestamp: 1782693953828
+model_id: m-d11c6606321f4064affd04c28d7d344d
+model_type: null
+name: xgb_model
+source_run_id: b99b77ba6f9943a6b9df68f25b0bcc3b
+status: 2
+status_message: null

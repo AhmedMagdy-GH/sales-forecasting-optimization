@@ -1,0 +1,14 @@
+artifact_uri: file:f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/Notebooks/Preprocessing/../../mlruns/0/d2005780bf9f4fbd85d9391b9556fa24/artifacts
+end_time: 1781617602649
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d2005780bf9f4fbd85d9391b9556fa24
+run_name: Best_Model_LightGBM
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781617593239
+status: 3
+tags: []
+user_id: MSH
