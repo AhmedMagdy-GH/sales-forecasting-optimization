@@ -1,0 +1,14 @@
+artifact_uri: file:f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/Notebooks/Preprocessing/../../mlruns/448787887472913009/a243041136bf424d9f4006e386c7a14d/artifacts
+end_time: 1783454257352
+entry_point_name: ''
+experiment_id: '448787887472913009'
+lifecycle_stage: active
+run_id: a243041136bf424d9f4006e386c7a14d
+run_name: XGBoost_tuned
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1783454174955
+status: 3
+tags: []
+user_id: MSH
