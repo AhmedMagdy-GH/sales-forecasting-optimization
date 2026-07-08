@@ -15,7 +15,7 @@ from components.forms import (
 from components.result import display_result
 from components.footer import render_footer
 from components.history import save_prediction, render_history
-from components.monitoring import log_prediction_performance
+from components.monitoring import log_prediction_performance, render_monitoring_dashboard
 
 from utils.loader import load_model, load_model_meta
 from utils.validation import validate_inputs
@@ -152,6 +152,9 @@ if predict:
 
     # --- 7. Render prediction history dashboard ---
     render_history()
+
+    # --- 8. Render model monitoring dashboard ---
+    render_monitoring_dashboard()
 
 # ==========================================
 # FOOTER
