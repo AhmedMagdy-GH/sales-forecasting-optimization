@@ -11,7 +11,6 @@ from utils.prediction import build_input_dataframe, run_prediction
 # ==========================================
 
 def render_batch_prediction(model) -> None:
-    
     """Render the Batch Prediction upload interface and run batch inference."""
 
     st.divider()
@@ -60,8 +59,7 @@ def render_batch_prediction(model) -> None:
             )
             return
 
-        
-
+     
         # Reuse the same column ordering enforced by build_input_dataframe,
         # applied here across the whole batch rather than row-by-row so we
         # avoid looping over run_prediction() for every row.
@@ -82,10 +80,7 @@ def render_batch_prediction(model) -> None:
 
         # --- 3. Append prediction columns ---
         result_df = batch_df.copy()
-        result_df["Predicted Sales (€)"] = (
-            pd.Series(predictions)
-            .round(2)
-        )
+        result_df["Predicted Sales (€)"] = np.round(predictions, 2)
         result_df["Sales Level"] = result_df["Predicted Sales (€)"].apply(
             lambda value: get_sales_status(value)[0]
         )
@@ -97,4 +92,15 @@ def render_batch_prediction(model) -> None:
             result_df,
             use_container_width=True,
             hide_index=True,
+        )
+
+        # --- 5. Download predictions as CSV (in-memory, no disk write) ---
+        csv_bytes = result_df.to_csv(index=False).encode("utf-8-sig")
+
+        st.download_button(
+            label="📥 Download Predictions",
+            data=csv_bytes,
+            file_name="batch_predictions.csv",
+            mime="text/csv",
+            use_container_width=True,
         )
