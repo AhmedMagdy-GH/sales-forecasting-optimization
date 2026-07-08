@@ -1,0 +1,16 @@
+creation_timestamp: 1783475699424
+current_stage: None
+deployment_job_state: null
+description: null
+last_updated_timestamp: 1783475699424
+model_id: m-b8af1f0fc01346a1b1f47f7ec46c9fd1
+name: rossmann-sales-forecasting-model
+run_id: 29c4f9cbb3df49a8bc50b7815e5b0cff
+run_link: null
+source: models:/m-b8af1f0fc01346a1b1f47f7ec46c9fd1
+status: READY
+status_message: null
+storage_location: file:f:/DEPI_R4_AI&Data_Science/Graduation_Project/code/sales-forecasting-optimization/Notebooks/Preprocessing/../../mlruns/448787887472913009/models/m-b8af1f0fc01346a1b1f47f7ec46c9fd1/artifacts
+user_id: null
+version: 13
+workspace: default
