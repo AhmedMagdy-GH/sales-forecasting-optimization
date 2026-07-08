@@ -119,7 +119,7 @@ FEATURE_RANGES = {
     "Store_TargetEnc":      (5.0, 12.0),
     "CompetitionDistance":  (0.0, 100_000.0),
     "CompetitionOpenMonths": (0.0, 600.0),
-    "Promo2ActiveWeeks":    (0.0, 260.0),
+    "Promo2ActiveWeeks":    (0.0, 300.0),
     "Week":                 (1, 53),
     "Year":                 (2013, 2030),
 }
@@ -159,10 +159,11 @@ def load_model_meta():
     """
     meta_path = "model_meta.json"
     fallback = {
-        "model":      "LightGBM_tuned_v2",
-        "r2":         0.8266,
-        "mae_orig":   825.52,
-        "rmse_orig":  1182.59,
+        "model":      "XGBoost_tuned",
+        "r2":         0.8306,
+        "mae_orig":   815.18,
+        "rmse_orig":  1150.54,
+        "mape":       0.1370,
         "features":   FEATURES,
     }
     if not os.path.exists(meta_path):
@@ -338,13 +339,15 @@ def display_result(prediction: float, input_df: pd.DataFrame) -> None:
 
     st.write("")
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.metric(label="🤖 Model",      value="LightGBM")
+        st.metric(label="🤖 Model",      value="XGBoost")
     with m2:
         st.metric(label="📈 R² Score",   value=f"{meta['r2']:.4f}")
     with m3:
         st.metric(label="📊 RMSE",       value=f"€{meta['rmse_orig']:,.0f}")
+    with m4:
+        st.metric(label="📉 MAPE",       value="13.70%")
 
     st.divider()
 
@@ -352,12 +355,11 @@ def display_result(prediction: float, input_df: pd.DataFrame) -> None:
         st.markdown(f"""
 ### Model Pipeline
 
-- **StandardScaler** — included for pipeline interface consistency; LightGBM
-  is tree-based and invariant to feature scaling, but the scaler ensures the
-  pipeline remains drop-in compatible if a distance-based model is substituted
-  in the future.
-- **LightGBM Regressor** — Light Gradient Boosting Machine, selected over
-  XGBoost based on higher R² ({meta['r2']}) and lower MAE (€{meta['mae_orig']:,.0f}).
+- **StandardScaler** — included for pipeline interface consistency; XGBoost is tree-based 
+  and therefore invariant to feature scaling, but scaling is retained to keep the pipeline 
+  drop-in compatible with distance-based models that might be substituted later.
+- **XGBoost Regressor** — Extreme Gradient Boosting, selected over
+  LightGBM based on higher R² ({meta['r2']}) and lower MAE (€{meta['mae_orig']:,.0f}).
 
 ### Features ({len(FEATURES)} total)
 
@@ -374,7 +376,7 @@ The prediction uses **{len(FEATURES)} engineered features** across four groups:
 
 | Scale | MAE | RMSE | R² |
 |---|---|---|---|
-| Log scale | 0.1299 | 0.1813 | {meta['r2']} |
+| Log scale | 0.1285 | 0.1792 | {meta['r2']} |
 | Original (€) | €{meta['mae_orig']:,.0f} | €{meta['rmse_orig']:,.0f} | — |
 
 ### Target Transform
@@ -403,7 +405,7 @@ with st.sidebar:
 **Pipeline**
 
 - StandardScaler
-- LightGBM Regressor
+- XGBoost Regressor
 """)
 
     st.divider()
@@ -411,7 +413,7 @@ with st.sidebar:
     st.markdown("""
 - Python
 - Streamlit
-- LightGBM
+- XGBoost
 - Pandas
 - NumPy
 - Scikit-Learn
@@ -423,13 +425,14 @@ with st.sidebar:
     st.metric("R² Score", f"{meta['r2']:.4f}")
     st.metric("MAE",      f"€{meta['mae_orig']:,.0f}")
     st.metric("RMSE",     f"€{meta['rmse_orig']:,.0f}")
+    st.metric("MAPE",     f"13.70%")
 
 # ==========================================
 # HEADER
 # ==========================================
 
 st.title("🏪 Rossmann Sales Forecasting")
-st.caption("Machine Learning Deployment using Streamlit & LightGBM")
+st.caption("Machine Learning Deployment using Streamlit & XGBoost")
 st.divider()
 
 left, right = st.columns([3, 1])
@@ -442,11 +445,12 @@ with right:
     st.markdown("### 🤖 Model")
 
     panel_items = [
-        ("Algorithm", "LightGBM"),
+        ("Algorithm", "XGBoost"),
         ("Features",  str(len(FEATURES))),
         ("R² Score",  f"{meta['r2']:.4f}"),
         ("MAE",       f"€{meta['mae_orig']:,.0f}"),
         ("RMSE",      f"€{meta['rmse_orig']:,.0f}"),
+        ("MAPE",      f"13.70%")
     ]
 
     for title, value in panel_items:
@@ -737,7 +741,7 @@ with footer_center:
 
 - Python
 - Streamlit
-- LightGBM
+- XGBoost
 - Scikit-Learn
 - Pandas
 """)
@@ -751,6 +755,8 @@ R² : {meta['r2']:.4f}
 MAE : €{meta['mae_orig']:,.0f}
 
 RMSE : €{meta['rmse_orig']:,.0f}
+
+MAPE : 13.70%
 """)
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -773,7 +779,7 @@ st.markdown("""
         Machine Learning Deployment using Streamlit
     </p>
     <p style="color: #00E676; font-weight: bold;">
-        LightGBM • Python • Streamlit
+        XGBoost • Python • Streamlit
     </p>
 </div>
 """, unsafe_allow_html=True)
