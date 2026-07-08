@@ -15,6 +15,7 @@ LAYOUT = "wide"
 MODEL_PATH = "model.pkl"
 META_PATH = "model_meta.json"
 HISTORY_PATH = Path("prediction_log.csv")
+PERFORMANCE_LOG_PATH = Path("performance_log.csv")
 
 # ==========================================
 # CONSTANTS — Feature list in exact training order
