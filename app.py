@@ -4,7 +4,14 @@ import numpy as np
 import joblib
 import json
 import os
-
+from datetime import datetime
+from utils.loader import load_model, load_model_meta
+from config import FEATURES
+from utils.validation import validate_inputs
+from utils.prediction import (
+    build_input_dataframe,
+    run_prediction,
+)
 # ==========================================
 # PAGE CONFIG
 # ==========================================
@@ -88,197 +95,59 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# CONSTANTS — Feature list in exact training order
-# ==========================================
 
-FEATURES = [
-    'Store_TargetEnc',
-    'DayOfWeek',
-    'CompetitionDistance',
-    'CompetitionDistanceMissing',
-    'CompetitionOpenMissing',
-    'StateHoliday',
-    'SchoolHoliday',
-    'Promo',
-    'Promo2',
-    'StoreType',
-    'Assortment',
-    'Year',
-    'Week',
-    'IsWeekend',
-    'IsMonthStart',
-    'IsMonthEnd',
-    'CompetitionOpenMonths',
-    'Promo2ActiveWeeks',
-    'IsPromo2Active'
-]
-
-# Training distribution reference ranges for validation
-FEATURE_RANGES = {
-    "Store_TargetEnc":      (5.0, 12.0),
-    "CompetitionDistance":  (0.0, 100_000.0),
-    "CompetitionOpenMonths": (0.0, 600.0),
-    "Promo2ActiveWeeks":    (0.0, 260.0),
-    "Week":                 (1, 53),
-    "Year":                 (2013, 2030),
-}
 
 # ==========================================
 # MODEL LOADING — cached so it runs only once per session
 # ==========================================
 
-@st.cache_resource(show_spinner="Loading model…")
-def load_model():
-    """
-    Load the serialized LightGBM pipeline from model.pkl.
-    Uses @st.cache_resource so the file is read from disk exactly once
-    per Streamlit server session, regardless of how many times the
-    script re-runs due to user interaction.
-    """
-    model_path = "model.pkl"
-    if not os.path.exists(model_path):
-        st.error(
-            "❌ **model.pkl not found.**  "
-            "Please ensure `model.pkl` is in the same directory as `app.py`."
-        )
-        st.stop()
-    try:
-        return joblib.load(model_path)
-    except Exception as exc:
-        st.error(f"❌ **Failed to load model:** {exc}")
-        st.stop()
-
-
-@st.cache_data(show_spinner=False)
-def load_model_meta():
-    """
-    Load optional model_meta.json if it exists alongside the app.
-    Returns a dict with known-good fallback values when the file is absent,
-    so the UI always has something to display.
-    """
-    meta_path = "model_meta.json"
-    fallback = {
-        "model":      "LightGBM_tuned_v2",
-        "r2":         0.8266,
-        "mae_orig":   825.52,
-        "rmse_orig":  1182.59,
-        "features":   FEATURES,
-    }
-    if not os.path.exists(meta_path):
-        return fallback
-    try:
-        with open(meta_path, "r") as fh:
-            data = json.load(fh)
-        # Merge with fallback so missing keys don't crash the UI
-        return {**fallback, **data}
-    except Exception:
-        return fallback
-
-
 model = load_model()
 meta  = load_model_meta()
-
 # ==========================================
-# INPUT VALIDATION
-# ==========================================
-
-def validate_inputs(
-    store_target_enc: float,
-    competition_distance: float,
-    competition_distance_missing: int,
-    competition_open_months: float,
-    competition_open_missing: int,
-    promo2_active_weeks: float,
-    week: int,
-    year: int,
-) -> list[str]:
-    """
-    Return a list of human-readable warning strings for inputs that fall
-    outside the ranges seen during training.  An empty list means all
-    inputs are within expected bounds.
-    """
-    warnings_out = []
-
-    lo, hi = FEATURE_RANGES["Store_TargetEnc"]
-    if not (lo <= store_target_enc <= hi):
-        warnings_out.append(
-            f"Store Target Encoding ({store_target_enc:.4f}) is outside the "
-            f"training range ({lo}–{hi}).  Predictions may be unreliable."
-        )
-
-    lo, hi = FEATURE_RANGES["CompetitionDistance"]
-    if not (lo <= competition_distance <= hi):
-        warnings_out.append(
-            f"Competition Distance ({competition_distance:,.0f} m) is outside "
-            f"the expected range ({lo:,.0f}–{hi:,.0f} m)."
-        )
-
-    if competition_distance < 0:
-        warnings_out.append("Competition Distance cannot be negative.")
-
-    lo, hi = FEATURE_RANGES["CompetitionOpenMonths"]
-    if not (lo <= competition_open_months <= hi):
-        warnings_out.append(
-            f"Competition Open Months ({competition_open_months}) is unusually "
-            f"large (expected ≤ {hi}).  Please verify the value."
-        )
-
-    lo, hi = FEATURE_RANGES["Promo2ActiveWeeks"]
-    if not (lo <= promo2_active_weeks <= hi):
-        warnings_out.append(
-            f"Promo2 Active Weeks ({promo2_active_weeks}) is outside the "
-            f"expected range ({lo}–{hi})."
-        )
-
-    lo, hi = FEATURE_RANGES["Week"]
-    if not (lo <= week <= hi):
-        warnings_out.append(
-            f"Week ({week}) must be between {lo} and {hi}."
-        )
-
-    lo, hi = FEATURE_RANGES["Year"]
-    if not (lo <= year <= hi):
-        warnings_out.append(
-            f"Year ({year}) must be between {lo} and {hi}."
-        )
-    # Check for inconsistent competition distance inputs
-    if competition_distance_missing == 1 and competition_distance > 0:
-        warnings_out.append(
-            "Competition Distance is provided, so Competition Distance Missing should be 0."
-        )
-
-    # Check for inconsistent competition open inputs
-    if competition_open_missing == 1 and competition_open_months > 0:
-        warnings_out.append(
-            "Competition Open Months is provided, so Competition Open Missing should be 0."
-        )
-
-    return warnings_out
-
-
-# ==========================================
-# PREDICTION HELPERS
+# Prediction Log
 # ==========================================
 
-def build_input_dataframe(inputs: dict) -> pd.DataFrame:
-    """
-    Build a single-row DataFrame from the user's inputs, with columns in
-    the exact order the model was trained on.  Column ordering is enforced
-    explicitly to guard against future dict-ordering surprises.
-    """
-    return pd.DataFrame([inputs])[FEATURES]
+
+HISTORY_FILE = "prediction_log.csv"
+
+def save_prediction(
+    store,
+    year,
+    week,
+    promo,
+    prediction,
+    category,
+):
+
+    new_record = pd.DataFrame([{
+    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "Store": round(store, 2),
+    "Year": year,
+    "Week": week,
+    "Promo": "Yes" if promo else "No",
+    "Predicted Sales (€)": round(prediction, 2),
+    "Sales Level": category
+    }])
+    if os.path.exists(HISTORY_FILE):
+
+        history = pd.read_csv(HISTORY_FILE)
+
+        history = pd.concat([history, new_record], ignore_index=True)
+
+    else:
+
+        history = new_record
+
+    history.to_csv(HISTORY_FILE, index=False)
 
 
-def run_prediction(input_df: pd.DataFrame) -> float:
-    """
-    Run inference through the cached LightGBM pipeline and invert the
-    log-transform applied during training (np.expm1 = inverse of np.log1p).
-    Returns the predicted daily sales in Euros.
-    """
-    log_pred = model.predict(input_df)[0]
-    return float(np.expm1(log_pred))
+def load_history():
 
+    if os.path.exists(HISTORY_FILE):
+
+        return pd.read_csv(HISTORY_FILE)
+
+    return pd.DataFrame()
 
 # ==========================================
 # RESULT DISPLAY
@@ -705,7 +574,7 @@ if predict:
     progress.progress(40, text="Running model…")
 
     try:
-        prediction = run_prediction(input_data)
+        prediction = run_prediction(model, input_data)
     except Exception as exc:
         st.error(f"❌ Prediction failed: {exc}")
         st.stop()
@@ -714,6 +583,94 @@ if predict:
     progress.empty()
     # --- 4. Display results ---
     display_result(prediction, input_data)
+    status, _ = get_sales_status(prediction)
+
+    status = status.replace("🔴 ", "")
+    status = status.replace("🟡 ", "")
+    status = status.replace("🟢 ", "")
+
+    save_prediction(
+
+        Store_TargetEnc,
+
+        Year,
+
+        Week,
+
+        Promo,
+
+        prediction,
+
+        status
+
+    )
+st.divider()
+
+st.subheader("📋 Prediction Log")
+
+history = load_history()
+
+if history.empty:
+
+    st.info("No predictions have been recorded yet.")
+
+else:
+
+    history = history.sort_values(
+        by="Timestamp",
+        ascending=False
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Logged Predictions",
+            len(history)
+        )
+
+    with col2:
+        st.metric(
+            "Last Prediction",
+            f"€{history.iloc[0]['Predicted Sales (€)']:,.2f}"
+        )
+
+    st.dataframe(
+        history,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    c1, c2 = st.columns(2)
+
+    with c1:
+
+        st.download_button(
+
+            "⬇ Export Prediction Log",
+
+            history.to_csv(index=False),
+
+            "prediction_log.csv",
+
+            "text/csv",
+
+            use_container_width=True
+
+        )
+
+    with c2:
+
+        if st.button(
+            "🗑 Clear Prediction Log",
+            use_container_width=True
+        ):
+
+            if os.path.exists(HISTORY_FILE):
+                os.remove(HISTORY_FILE)
+
+            st.success("Prediction log cleared successfully.")
+            st.rerun()
 # ==========================================
 # FOOTER
 # ==========================================
