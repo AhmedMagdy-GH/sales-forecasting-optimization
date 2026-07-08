@@ -19,6 +19,7 @@ from components.monitoring import log_prediction_performance, render_monitoring_
 from components.batch_prediction import render_batch_prediction
 from components.drift import render_drift_dashboard
 from components.feedback import render_feedback_dashboard
+from components.alerts import render_alerts
 
 from utils.loader import load_model, load_model_meta
 from utils.validation import validate_inputs
@@ -165,6 +166,9 @@ if predict:
 
     # --- 9. Render model drift dashboard ---
     render_drift_dashboard()
+
+    # --- 10. Render active alerts ---
+    render_alerts()
 
 # ==========================================
 # PREDICTION FEEDBACK
