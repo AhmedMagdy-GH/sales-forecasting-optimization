@@ -1,50 +1,53 @@
-import os
 import pandas as pd
 from datetime import datetime
+
+from config import HISTORY_PATH
+from components.result import get_sales_status
+
 # ==========================================
 # Prediction Log
 # ==========================================
 
 
-HISTORY_FILE = "prediction_log.csv"
+def save_prediction(inputs: dict, prediction: float) -> None:
+    """
+    Save a single successful prediction to the history CSV.
 
-def save_prediction(
-    store,
-    year,
-    week,
-    promo,
-    prediction,
-    category,
-):
+    Stores:
+    - Timestamp (datetime.now())
+    - Every model feature/input used for the prediction
+    - The predicted sales value
+    - The derived sales status/category
 
-    new_record = pd.DataFrame([{
-    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    "Store": round(store, 2),
-    "Year": year,
-    "Week": week,
-    "Promo": "Yes" if promo else "No",
-    "Predicted Sales (€)": round(prediction, 2),
-    "Sales Level": category
-    }])
-    if os.path.exists(HISTORY_FILE):
+    Creates the history file automatically if it does not exist,
+    and appends new rows to it otherwise, without re-reading the
+    existing file contents.
+    """
+    sales_status, _ = get_sales_status(prediction)
 
-        history = pd.read_csv(HISTORY_FILE)
+    record = {
+        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        **inputs,
+        "Predicted Sales (€)": round(prediction, 2),
+        "Sales Level": sales_status,
+    }
 
-        history = pd.concat([history, new_record], ignore_index=True)
+    new_record = pd.DataFrame([record])
 
-    else:
+    file_exists = HISTORY_PATH.exists()
 
-        history = new_record
+    new_record.to_csv(
+        HISTORY_PATH,
+        mode="a",
+        header=not file_exists,
+        index=False,
+    )
 
-    history.to_csv(HISTORY_FILE, index=False)
 
+def load_history() -> pd.DataFrame:
 
-def load_history():
+    if HISTORY_PATH.exists():
 
-    if os.path.exists(HISTORY_FILE):
-
-        return pd.read_csv(HISTORY_FILE)
+        return pd.read_csv(HISTORY_PATH)
 
     return pd.DataFrame()
-
-

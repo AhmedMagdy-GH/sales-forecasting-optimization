@@ -1,5 +1,2 @@
-Timestamp,Store,Year,Week,Promo,Predicted Sales (€),Sales Level
-2026-06-29 22:45:40,8.5,2015,30,No,3869.71,Moderate Sales Expected
-2026-06-29 22:46:25,8.5,2017,30,Yes,4963.54,Moderate Sales Expected
-2026-07-08 03:39:52,8.5,2015,30,No,3869.71,Moderate Sales Expected
-2026-07-08 05:24:56,8.5,2015,30,No,3869.71,Moderate Sales Expected
+Timestamp,Store_TargetEnc,CompetitionDistance,CompetitionDistanceMissing,CompetitionOpenMissing,DayOfWeek,IsWeekend,StoreType,Assortment,Promo,Promo2,Promo2ActiveWeeks,SchoolHoliday,StateHoliday,IsPromo2Active,Year,Week,IsMonthStart,IsMonthEnd,CompetitionOpenMonths,Predicted Sales (€),Sales Level
+2026-07-08 20:28:07,8.5,500.0,0,0,5,0,0,0,0,0,0.0,0,0,0,2015,30,0,0,12.0,3986.73,🟡 Moderate Sales Expected

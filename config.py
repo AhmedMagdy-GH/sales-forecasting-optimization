@@ -1,3 +1,5 @@
+from pathlib import Path
+
 # ==========================================
 # PAGE CONFIG
 # ==========================================
@@ -12,6 +14,7 @@ LAYOUT = "wide"
 
 MODEL_PATH = "model.pkl"
 META_PATH = "model_meta.json"
+HISTORY_PATH = Path("prediction_log.csv")
 
 # ==========================================
 # CONSTANTS — Feature list in exact training order
