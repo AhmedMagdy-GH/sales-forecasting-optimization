@@ -17,6 +17,7 @@ from components.footer import render_footer
 from components.history import save_prediction, render_history
 from components.monitoring import log_prediction_performance, render_monitoring_dashboard
 from components.batch_prediction import render_batch_prediction
+from components.drift import render_drift_dashboard
 
 from utils.loader import load_model, load_model_meta
 from utils.validation import validate_inputs
@@ -157,11 +158,15 @@ if predict:
     # --- 8. Render model monitoring dashboard ---
     render_monitoring_dashboard()
 
+    # --- 9. Render model drift dashboard ---
+    render_drift_dashboard()
+
 # ==========================================
 # BATCH PREDICTION
 # ==========================================
 
 render_batch_prediction(model)
+
 # ==========================================
 # FOOTER
 # ==========================================
