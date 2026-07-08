@@ -161,8 +161,7 @@ if predict:
 # BATCH PREDICTION
 # ==========================================
 
-render_batch_prediction()
-
+render_batch_prediction(model)
 # ==========================================
 # FOOTER
 # ==========================================
