@@ -18,6 +18,7 @@ from components.history import save_prediction, render_history
 from components.monitoring import log_prediction_performance, render_monitoring_dashboard
 from components.batch_prediction import render_batch_prediction
 from components.drift import render_drift_dashboard
+from components.feedback import render_feedback_dashboard
 
 from utils.loader import load_model, load_model_meta
 from utils.validation import validate_inputs
@@ -152,6 +153,10 @@ if predict:
     # --- 6. Display results ---
     display_result(prediction, input_data, meta, FEATURES)
 
+    # --- 6b. Persist prediction so feedback survives the rerun ---
+    # caused by clicking a feedback button below.
+    st.session_state["last_prediction"] = prediction
+
     # --- 7. Render prediction history dashboard ---
     render_history()
 
@@ -160,6 +165,16 @@ if predict:
 
     # --- 9. Render model drift dashboard ---
     render_drift_dashboard()
+
+# ==========================================
+# PREDICTION FEEDBACK
+# ==========================================
+# Rendered independently of the `predict` button state so that
+# clicking a feedback button (which triggers a rerun) does not hide
+# the section before the vote can be cast.
+
+if "last_prediction" in st.session_state:
+    render_feedback_dashboard(st.session_state["last_prediction"])
 
 # ==========================================
 # BATCH PREDICTION
