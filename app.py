@@ -1,7 +1,8 @@
 import streamlit as st
- 
+
 from config import FEATURES
-from components.history import save_prediction
+
+from components.history import save_prediction, render_history
 from components.styles import load_css
 from components.sidebar import render_sidebar
 from components.header import render_header
@@ -13,7 +14,7 @@ from components.forms import (
 )
 from components.result import display_result
 from components.footer import render_footer
- 
+
 from utils.loader import load_model, load_model_meta
 from utils.validation import validate_inputs
 from utils.prediction import build_input_dataframe, run_prediction
@@ -128,7 +129,7 @@ if predict:
 
     # --- 4. Display results ---
     display_result(prediction, input_data, meta, FEATURES)
- 
+    render_history()
 # ==========================================
 # FOOTER
 # ==========================================
