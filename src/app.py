@@ -4,6 +4,12 @@ import numpy as np
 import joblib
 import json
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from constants import FEATURES, FEATURE_RANGES, DEFAULT_MODEL_NAME
+from monitoring import PredictionLogger, compute_drift, compute_performance, log_feedback
+from alerting import run_all_checks
 
 # ==========================================
 # PAGE CONFIG
@@ -89,40 +95,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# CONSTANTS — Feature list in exact training order
+# CONSTANTS
 # ==========================================
-
-FEATURES = [
-    'Store_TargetEnc',
-    'DayOfWeek',
-    'CompetitionDistance',
-    'CompetitionDistanceMissing',
-    'CompetitionOpenMissing',
-    'StateHoliday',
-    'SchoolHoliday',
-    'Promo',
-    'Promo2',
-    'StoreType',
-    'Assortment',
-    'Year',
-    'Week',
-    'IsWeekend',
-    'IsMonthStart',
-    'IsMonthEnd',
-    'CompetitionOpenMonths',
-    'Promo2ActiveWeeks',
-    'IsPromo2Active'
-]
-
-# Training distribution reference ranges for validation
-FEATURE_RANGES = {
-    "Store_TargetEnc":      (5.0, 12.0),
-    "CompetitionDistance":  (0.0, 100_000.0),
-    "CompetitionOpenMonths": (0.0, 600.0),
-    "Promo2ActiveWeeks":    (0.0, 300.0),
-    "Week":                 (1, 53),
-    "Year":                 (2013, 2030),
-}
+# FEATURES (training column order) and FEATURE_RANGES (validation bounds)
+# now live in constants.py, shared with batch_predict.py and the Streamlit
+# pages, so they can never drift out of sync with each other.
 
 # ==========================================
 # MODEL LOADING — cached so it runs only once per session
@@ -159,7 +136,7 @@ def load_model_meta():
     """
     meta_path = "model_meta.json"
     fallback = {
-        "model":      "XGBoost_tuned",
+        "model":      DEFAULT_MODEL_NAME,
         "r2":         0.8306,
         "mae_orig":   815.18,
         "rmse_orig":  1150.54,
@@ -179,6 +156,7 @@ def load_model_meta():
 
 model = load_model()
 meta  = load_model_meta()
+pred_logger = PredictionLogger(model_version=meta.get("model", DEFAULT_MODEL_NAME))
 
 # ==========================================
 # INPUT VALIDATION
@@ -426,6 +404,29 @@ with st.sidebar:
     st.metric("MAE",      f"€{meta['mae_orig']:,.0f}")
     st.metric("RMSE",     f"€{meta['rmse_orig']:,.0f}")
     st.metric("MAPE",     f"13.70%")
+
+    st.divider()
+    st.markdown("### 🩺 Model Health")
+    n_logged = pred_logger.count()
+    st.caption(f"{n_logged} predictions logged for monitoring")
+    if n_logged > 0:
+        try:
+            drift_df = compute_drift(window=min(200, n_logged))
+            n_critical = int((drift_df["status"] == "critical").sum()) if not drift_df.empty else 0
+            n_warning = int((drift_df["status"] == "warning").sum()) if not drift_df.empty else 0
+            if n_critical:
+                st.error(f"🔴 {n_critical} feature(s) show critical drift")
+            elif n_warning:
+                st.warning(f"🟡 {n_warning} feature(s) show moderate drift")
+            else:
+                st.success("🟢 No significant input drift detected")
+        except Exception:
+            st.caption("Drift check unavailable yet.")
+        perf = compute_performance()
+        if perf:
+            st.caption(f"Live MAPE (labeled samples): {perf['mape']:.1%}")
+    st.caption("Full drift/performance dashboard: run `streamlit run src/pages/1_Monitoring_Dashboard.py` "
+               "or open the **Monitoring Dashboard** page in the sidebar navigation.")
 
 # ==========================================
 # HEADER
@@ -716,8 +717,47 @@ if predict:
 
     progress.progress(100, text="Prediction complete ✅")
     progress.empty()
-    # --- 4. Display results ---
+
+    # --- 4. Log to monitoring store (audit trail + drift/performance tracking) ---
+    prediction_id = pred_logger.log(input_data.iloc[0].to_dict(), prediction)
+    st.session_state["last_prediction_id"] = prediction_id
+
+    # Run alert checks periodically rather than on every single click
+    if pred_logger.count() % 10 == 0:
+        try:
+            run_all_checks()
+        except Exception:
+            pass  # monitoring must never break the user-facing prediction flow
+
+    # --- 5. Display results ---
     display_result(prediction, input_data)
+    st.caption(f"🧾 Logged as prediction #{prediction_id} for monitoring.")
+# ==========================================
+# FEEDBACK LOOP — record actual sales once known
+# ==========================================
+
+st.divider()
+with st.expander("📝 Log Actual Sales (feedback loop for model monitoring)"):
+    st.caption(
+        "Once the real sales figure for a forecasted day is known, log it here. "
+        "This closes the feedback loop and feeds the rolling MAE/RMSE/MAPE tracked "
+        "on the Monitoring Dashboard."
+    )
+    default_id = st.session_state.get("last_prediction_id", 1)
+    fb_col1, fb_col2 = st.columns(2)
+    with fb_col1:
+        fb_id = st.number_input("Prediction ID", min_value=1, value=int(default_id), step=1)
+    with fb_col2:
+        fb_actual = st.number_input("Actual Sales (€)", min_value=0.0, value=0.0, step=1.0)
+    if st.button("Save Feedback"):
+        found = log_feedback(int(fb_id), float(fb_actual))
+        if found:
+            st.success(f"Saved actual sales €{fb_actual:,.2f} for prediction #{fb_id}.")
+        else:
+            st.error(f"❌ No prediction with ID #{fb_id} was found — double-check the ID and try again.")
+    st.caption("Need to log feedback for many predictions at once? Use the **Batch Predictions** page — "
+               "it has a bulk upload for Prediction ID + Actual Sales.")
+
 # ==========================================
 # FOOTER
 # ==========================================

@@ -1,0 +1,21 @@
+
+*.pyc
+__pycache__/
+
+
+.env
+Credentials.json
+.streamlit/secrets.toml
+
+# DVC's local remote config holds the path to the Google Drive service
+# account key file on this machine — see Docs/DVC-infos/dvc_gdrive_setup.yaml
+.dvc/config.local
+
+
+# src/log/monitoring.csv - logged predictions
+# src/log/alerts.log     - raised alerts
+src/log/
+
+
+.DS_Store
+Thumbs.db

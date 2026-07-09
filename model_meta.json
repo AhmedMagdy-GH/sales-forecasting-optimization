@@ -1,0 +1,20 @@
+{
+  "model": "XGBoost_tuned",
+  "mlflow_run_name": "Best_Model_XGBoost",
+  "mlflow_registered_name": "rossmann-sales-forecasting-model",
+  "r2": 0.8306,
+  "mae": 0.1285,
+  "rmse": 0.1792,
+  "mae_orig": 815.18,
+  "rmse_orig": 1150.54,
+  "mape": 0.137,
+  "features": [
+    "Store_TargetEnc", "DayOfWeek", "CompetitionDistance",
+    "CompetitionDistanceMissing", "CompetitionOpenMissing", "StateHoliday",
+    "SchoolHoliday", "Promo", "Promo2", "StoreType", "Assortment", "Year",
+    "Week", "IsWeekend", "IsMonthStart", "IsMonthEnd",
+    "CompetitionOpenMonths", "Promo2ActiveWeeks", "IsPromo2Active"
+  ],
+  "trained_on": "2026-06-27",
+  "training_rows": 844338
+}
